@@ -120,4 +120,4 @@ class ReportAccess(models.Model):
     
     def __str__(self):
         template_name = self.report_template.name if self.report_template else 'All Reports'
-        return f"{self.user.full_name} - {template_name} - {self.access_level}"
+        return f"{self.user.username} - {template_name} - {self.access_level}"

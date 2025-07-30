@@ -22,7 +22,7 @@ class UserProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"Profile of {self.user.full_name}"
+        return f"Profile of {self.user.username}"
 
 class BuildingAccess(models.Model):
     ACCESS_LEVEL_CHOICES = [
@@ -63,7 +63,7 @@ class BuildingAccess(models.Model):
         unique_together = ('user', 'building')
     
     def __str__(self):
-        return f"{self.user.full_name} - {self.building.name} - {self.access_level}"
+        return f"{self.user.username} - {self.building.name} - {self.access_level}"
     
     @property
     def is_access_valid(self):
@@ -107,7 +107,7 @@ class UserActivity(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"{self.user.full_name} - {self.action} - {self.timestamp}"
+        return f"{self.user.username} - {self.action} - {self.timestamp}"
     
     class Meta:
         ordering = ['-timestamp']
@@ -122,7 +122,7 @@ class UserSession(models.Model):
     is_active = models.BooleanField(default=True)
     
     def __str__(self):
-        return f"{self.user.full_name} - {self.login_time}"
+        return f"{self.user.username} - {self.login_time}"
     
     class Meta:
         ordering = ['-login_time']

@@ -85,7 +85,7 @@ class FieldRequestComment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"Comment by {self.created_by.full_name} on {self.field_request.title}"
+        return f"Comment by {self.created_by.username} on {self.field_request.title}"
     
     class Meta:
         ordering = ['created_at']
