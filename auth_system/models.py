@@ -1,5 +1,13 @@
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core import validators
 from django.db import models
+
+
+class CustomUsernameValidator(UnicodeUsernameValidator):
+    regex = r'^[\w.@+\- ]+$'
+    message = 'Enter a valid username. This value may contain only letters, numbers, spaces, and @/./+/-/_ characters.'
+
 
 class User(AbstractUser):
     ROLE_CHOICES = [
@@ -8,6 +16,18 @@ class User(AbstractUser):
         ('field', 'Field - Limited Access'),
         ('readonly', 'Read-Only Access'),
     ]
+    
+    username_validator = CustomUsernameValidator()
+    
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        help_text='Required. 150 characters or fewer. Letters, digits, spaces and @/./+/-/_ only.',
+        validators=[username_validator],
+        error_messages={
+            'unique': 'A user with that username already exists.',
+        },
+    )
     
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20, blank=True)
