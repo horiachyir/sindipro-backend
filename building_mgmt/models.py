@@ -3,6 +3,17 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+class Address(models.Model):
+    cep = models.CharField(max_length=10)
+    city = models.CharField(max_length=100)
+    neighborhood = models.CharField(max_length=100)
+    number = models.CharField(max_length=20)
+    state = models.CharField(max_length=50)
+    street = models.CharField(max_length=200)
+    
+    def __str__(self):
+        return f"{self.street}, {self.number}, {self.neighborhood}, {self.city}/{self.state}"
+
 class Building(models.Model):
     BUILDING_TYPE_CHOICES = [
         ('residential', 'Residential'),
@@ -10,35 +21,64 @@ class Building(models.Model):
         ('mixed', 'Mixed Use'),
     ]
     
-    name = models.CharField(max_length=200)
-    address = models.TextField()
+    PHONE_TYPE_CHOICES = [
+        ('mobile', 'Mobile'),
+        ('landline', 'Landline'),
+    ]
+    
+    # Basic Information
+    building_name = models.CharField(max_length=200)
     building_type = models.CharField(max_length=20, choices=BUILDING_TYPE_CHOICES, default='residential')
-    total_units = models.PositiveIntegerField()
-    floors = models.PositiveIntegerField()
-    year_built = models.PositiveIntegerField()
-    total_area_sqm = models.DecimalField(max_digits=10, decimal_places=2)
-    common_area_sqm = models.DecimalField(max_digits=10, decimal_places=2)
-    
-    # Contact Information
-    manager_name = models.CharField(max_length=200)
-    manager_phone = models.CharField(max_length=20)
-    manager_email = models.EmailField()
-    
-    # Legal Information
     cnpj = models.CharField(max_length=18, unique=True)
-    registration_number = models.CharField(max_length=50)
-    municipal_registration = models.CharField(max_length=50, blank=True)
     
-    # Financial Information
-    monthly_common_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    reserve_fund_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # Manager Information
+    manager_name = models.CharField(max_length=200)
+    manager_phone = models.CharField(max_length=30)
+    manager_phone_type = models.CharField(max_length=20, choices=PHONE_TYPE_CHOICES, default='mobile')
+    
+    # Address Information
+    address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='building_primary')
+    use_separate_address = models.BooleanField(default=False)
+    alternative_address = models.OneToOneField(Address, on_delete=models.CASCADE, null=True, blank=True, related_name='building_alternative')
+    
+    # Tower Information
+    number_of_towers = models.PositiveIntegerField()
+    
+    # Residential-specific fields
+    apartments_per_tower = models.PositiveIntegerField(null=True, blank=True)
+    
+    # Mixed-specific unit counts
+    residential_units = models.PositiveIntegerField(null=True, blank=True)
+    commercial_units = models.PositiveIntegerField(null=True, blank=True)
+    non_residential_units = models.PositiveIntegerField(null=True, blank=True)
+    studio_units = models.PositiveIntegerField(null=True, blank=True)
+    wave_units = models.PositiveIntegerField(null=True, blank=True)
     
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return self.name
+        return self.building_name
+
+class Tower(models.Model):
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='towers')
+    name = models.CharField(max_length=100)
+    units_per_tower = models.PositiveIntegerField()
+    
+    def __str__(self):
+        return f"{self.building.building_name} - {self.name}"
+
+class TowerUnitDistribution(models.Model):
+    tower = models.OneToOneField(Tower, on_delete=models.CASCADE, related_name='unit_distribution')
+    commercial = models.PositiveIntegerField(default=0)
+    non_residential = models.PositiveIntegerField(default=0)
+    residential = models.PositiveIntegerField(default=0)
+    studio = models.PositiveIntegerField(default=0)
+    wave = models.PositiveIntegerField(default=0)
+    
+    def __str__(self):
+        return f"{self.tower.name} - Unit Distribution"
 
 class Unit(models.Model):
     UNIT_TYPE_CHOICES = [
