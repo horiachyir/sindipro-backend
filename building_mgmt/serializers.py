@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Building, Address, Tower, TowerUnitDistribution
+from .models import Building, Address, Tower, TowerUnitDistribution, Unit
 
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -167,3 +167,19 @@ class BuildingSerializer(serializers.ModelSerializer):
             )
         
         return data
+
+class BuildingReadSerializer(serializers.ModelSerializer):
+    address = AddressSerializer(read_only=True)
+    alternative_address = AddressSerializer(read_only=True)
+    towers = TowerSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Building
+        fields = [
+            'id', 'building_name', 'building_type', 'cnpj', 'manager_name', 
+            'manager_phone', 'manager_phone_type', 'address', 
+            'use_separate_address', 'alternative_address', 'number_of_towers',
+            'apartments_per_tower', 'residential_units', 'commercial_units',
+            'non_residential_units', 'studio_units', 'wave_units',
+            'towers', 'created_at', 'updated_at'
+        ]

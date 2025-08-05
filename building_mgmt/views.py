@@ -5,7 +5,14 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from .models import Building
-from .serializers import BuildingSerializer
+from .serializers import BuildingSerializer, BuildingReadSerializer
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_buildings(request):
+    buildings = Building.objects.filter(created_by=request.user).prefetch_related('address', 'alternative_address', 'towers__unit_distribution')
+    serializer = BuildingReadSerializer(buildings, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
