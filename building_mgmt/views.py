@@ -7,12 +7,29 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Building
 from .serializers import BuildingSerializer, BuildingReadSerializer
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def get_buildings(request):
-    buildings = Building.objects.filter(created_by=request.user).prefetch_related('address', 'alternative_address', 'towers__unit_distribution')
-    serializer = BuildingReadSerializer(buildings, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    if request.method == 'GET':
+        buildings = Building.objects.filter(created_by=request.user).prefetch_related('address', 'alternative_address', 'towers__unit_distribution')
+        serializer = BuildingReadSerializer(buildings, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    elif request.method == 'POST':
+        serializer = BuildingSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            building = serializer.save(created_by=request.user)
+            return Response({
+                'message': 'Building created successfully',
+                'building_id': building.id,
+                'building_name': building.building_name
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response({
+            'error': 'Invalid data',
+            'details': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
