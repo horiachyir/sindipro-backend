@@ -81,35 +81,35 @@ class TowerUnitDistribution(models.Model):
         return f"{self.tower.name} - Unit Distribution"
 
 class Unit(models.Model):
-    UNIT_TYPE_CHOICES = [
-        ('apartment', 'Apartment'),
-        ('store', 'Store'),
-        ('parking', 'Parking Space'),
-        ('storage', 'Storage'),
+    IDENTIFICATION_CHOICES = [
+        ('residential', 'Residential'),
+        ('commercial', 'Commercial'),
     ]
     
-    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='units')
-    unit_number = models.CharField(max_length=20)
-    unit_type = models.CharField(max_length=20, choices=UNIT_TYPE_CHOICES, default='apartment')
+    STATUS_CHOICES = [
+        ('vacant', 'Vacant'),
+        ('occupied', 'Occupied'),
+    ]
+    
+    block = models.ForeignKey(Tower, on_delete=models.CASCADE, related_name='units')
+    number = models.CharField(max_length=20)
     floor = models.PositiveIntegerField()
-    area_sqm = models.DecimalField(max_digits=8, decimal_places=2)
-    bedrooms = models.PositiveIntegerField(default=0)
-    bathrooms = models.PositiveIntegerField(default=0)
-    
-    # Owner Information
-    owner_name = models.CharField(max_length=200)
-    owner_cpf = models.CharField(max_length=14)
+    area = models.DecimalField(max_digits=8, decimal_places=2)
+    ideal_fraction = models.DecimalField(max_digits=8, decimal_places=2)
+    identification = models.CharField(max_length=20, choices=IDENTIFICATION_CHOICES)
+    deposit_location = models.CharField(max_length=200, blank=True)
+    has_deposit = models.CharField(max_length=3)
+    key_delivery = models.CharField(max_length=3)
+    owner = models.CharField(max_length=200)
     owner_phone = models.CharField(max_length=20)
-    owner_email = models.EmailField()
-    
-    # Financial Information
-    common_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    parking_spaces = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ('building', 'unit_number')
+        unique_together = ('block', 'number')
     
     def __str__(self):
-        return f"{self.building.name} - Unit {self.unit_number}"
+        return f"{self.block.name} - Unit {self.number}"

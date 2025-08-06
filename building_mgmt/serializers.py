@@ -18,6 +18,24 @@ class TowerSerializer(serializers.ModelSerializer):
         model = Tower
         fields = ['id', 'name', 'units_per_tower', 'unit_distribution']
 
+class UnitSerializer(serializers.ModelSerializer):
+    block_name = serializers.CharField(source='block.name', read_only=True)
+    
+    class Meta:
+        model = Unit
+        fields = [
+            'id', 'area', 'block_id', 'block_name', 'deposit_location',
+            'floor', 'has_deposit', 'ideal_fraction', 'identification',
+            'key_delivery', 'number', 'owner', 'owner_phone',
+            'parking_spaces', 'status'
+        ]
+
+    def to_internal_value(self, data):
+        # Handle block_id field
+        if 'block_id' in data:
+            data['block'] = data.pop('block_id')
+        return super().to_internal_value(data)
+
 class BuildingSerializer(serializers.ModelSerializer):
     address = AddressSerializer()
     alternative_address = AddressSerializer(required=False, allow_null=True)
