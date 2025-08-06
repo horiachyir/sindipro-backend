@@ -16,7 +16,7 @@ class TowerSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Tower
-        fields = ['name', 'units_per_tower', 'unit_distribution']
+        fields = ['id', 'name', 'units_per_tower', 'unit_distribution']
 
 class BuildingSerializer(serializers.ModelSerializer):
     address = AddressSerializer()
