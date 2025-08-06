@@ -51,19 +51,19 @@ def create_building(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def create_unit(request, building_id):
-    print(f"DEBUG: Received request for building_id: {building_id}")
+def create_unit(request, tower_id):
+    print(f"DEBUG: Received request for tower_id: {tower_id}")
     print(f"DEBUG: User: {request.user}")
     print(f"DEBUG: Request data: {request.data}")
     
-    # Verify the building belongs to the user
+    # Verify the tower exists and belongs to a building owned by the user
     try:
-        building = Building.objects.get(id=building_id, created_by=request.user)
-        print(f"DEBUG: Found building: {building}")
-    except Building.DoesNotExist:
-        print(f"DEBUG: Building {building_id} not found or access denied for user {request.user}")
+        tower = Tower.objects.select_related('building').get(id=tower_id, building__created_by=request.user)
+        print(f"DEBUG: Found tower: {tower} in building: {tower.building}")
+    except Tower.DoesNotExist:
+        print(f"DEBUG: Tower {tower_id} not found or access denied for user {request.user}")
         return Response({
-            'error': 'Building not found or access denied'
+            'error': 'Tower not found or access denied'
         }, status=status.HTTP_404_NOT_FOUND)
     
     serializer = UnitSerializer(data=request.data)
