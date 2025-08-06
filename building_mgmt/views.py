@@ -66,10 +66,16 @@ def create_unit(request, tower_id):
             'error': 'Tower not found or access denied'
         }, status=status.HTTP_404_NOT_FOUND)
     
-    serializer = UnitSerializer(data=request.data)
+    # Remove block_id from request data if present (since it comes from URL)
+    data = request.data.copy()
+    if 'block_id' in data:
+        data.pop('block_id')
+    
+    serializer = UnitSerializer(data=data)
     
     if serializer.is_valid():
-        unit = serializer.save()
+        # Set the block (tower) from the URL parameter
+        unit = serializer.save(block=tower)
         return Response({
             'message': 'Unit created successfully',
             'unit': UnitSerializer(unit).data

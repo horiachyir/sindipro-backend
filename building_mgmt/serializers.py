@@ -20,7 +20,7 @@ class TowerSerializer(serializers.ModelSerializer):
 
 class UnitSerializer(serializers.ModelSerializer):
     block_name = serializers.CharField(source='block.name', read_only=True)
-    block_id = serializers.IntegerField(write_only=True)
+    block_id = serializers.IntegerField(read_only=True, source='block.id')
     
     class Meta:
         model = Unit
@@ -30,13 +30,6 @@ class UnitSerializer(serializers.ModelSerializer):
             'key_delivery', 'number', 'owner', 'owner_phone',
             'parking_spaces', 'status'
         ]
-
-    def to_internal_value(self, data):
-        # Handle block_id field
-        if 'block_id' in data:
-            block_id = data.pop('block_id')
-            data['block'] = block_id
-        return super().to_internal_value(data)
 
 class BuildingSerializer(serializers.ModelSerializer):
     address = AddressSerializer()
