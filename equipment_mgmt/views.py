@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from rest_framework import viewsets, status
 from rest_framework.response import Response
@@ -33,3 +33,23 @@ def list_equipment(request):
     equipment = Equipment.objects.filter(created_by=request.user)
     serializer = EquipmentSerializer(equipment, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_maintenance_record(request, equipment_id):
+    equipment = get_object_or_404(Equipment, id=equipment_id, created_by=request.user)
+    
+    serializer = MaintenanceRecordSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        maintenance_record = serializer.save(equipment=equipment)
+        return Response({
+            'message': 'Maintenance record created successfully',
+            'maintenance_record_id': maintenance_record.id
+        }, status=status.HTTP_201_CREATED)
+    
+    return Response({
+        'error': 'Invalid data',
+        'details': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)

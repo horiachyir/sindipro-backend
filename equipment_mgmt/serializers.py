@@ -34,8 +34,7 @@ class EquipmentSerializer(serializers.ModelSerializer):
 class MaintenanceRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = MaintenanceRecord
-        fields = '__all__'
-        read_only_fields = ('created_by', 'created_at', 'updated_at')
+        fields = ['cost', 'date', 'description', 'notes', 'technician', 'type']
 
 
 class EquipmentDocumentSerializer(serializers.ModelSerializer):
