@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from rest_framework import viewsets, status
 from rest_framework.response import Response
@@ -34,3 +34,29 @@ def legal_template_handler(request):
             'error': 'Invalid data',
             'details': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_legal_template(request, template_id):
+    try:
+        template = get_object_or_404(LegalTemplate, id=template_id, created_by=request.user)
+    except LegalTemplate.DoesNotExist:
+        return Response({
+            'error': 'Template not found or you do not have permission to update it'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = LegalTemplateSerializer(template, data=request.data, context={'request': request}, partial=True)
+    
+    if serializer.is_valid():
+        updated_template = serializer.save()
+        return Response({
+            'message': 'Legal template updated successfully',
+            'template_id': updated_template.id,
+            'template_name': updated_template.name
+        }, status=status.HTTP_200_OK)
+    
+    return Response({
+        'error': 'Invalid data',
+        'details': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
