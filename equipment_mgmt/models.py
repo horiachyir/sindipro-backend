@@ -25,19 +25,34 @@ class Equipment(models.Model):
         ('retired', 'Retired'),
     ]
     
-    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='equipment')
-    equipment_type = models.CharField(max_length=20, choices=EQUIPMENT_TYPE_CHOICES)
+    MAINTENANCE_FREQUENCY_CHOICES = [
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+        ('quarterly', 'Quarterly'),
+        ('semi_annual', 'Semi-Annual'),
+        ('annual', 'Annual'),
+    ]
+    
+    # Required fields based on new structure
+    condominium = models.CharField(max_length=200)  # Building/Condominium name
     name = models.CharField(max_length=200)
+    type = models.CharField(max_length=100)  # Equipment type (e.g., "Social")
+    location = models.CharField(max_length=200)
+    purchase_date = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='operational')
+    maintenance_frequency = models.CharField(max_length=20, choices=MAINTENANCE_FREQUENCY_CHOICES, default='monthly')
+    contractor_name = models.CharField(max_length=200)
+    contractor_phone = models.CharField(max_length=20)
+    
+    # Keep some useful existing fields
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='equipment', null=True, blank=True)
+    equipment_type = models.CharField(max_length=20, choices=EQUIPMENT_TYPE_CHOICES, null=True, blank=True)
     brand = models.CharField(max_length=100, blank=True)
     model = models.CharField(max_length=100, blank=True)
     serial_number = models.CharField(max_length=100, blank=True)
-    location = models.CharField(max_length=200)
-    installation_date = models.DateField()
     warranty_expiry = models.DateField(null=True, blank=True)
     last_maintenance = models.DateField(null=True, blank=True)
     next_maintenance = models.DateField(null=True, blank=True)
-    maintenance_frequency_months = models.PositiveIntegerField(default=6)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='operational')
     purchase_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     notes = models.TextField(blank=True)
     
@@ -46,7 +61,7 @@ class Equipment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.name} - {self.building.name}"
+        return f"{self.name} - {self.condominium}"
     
     @property
     def maintenance_overdue(self):
