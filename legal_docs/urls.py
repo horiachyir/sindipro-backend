@@ -2,5 +2,5 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('template/', views.create_legal_template, name='create_legal_template'),
+    path('template/', views.legal_template_handler, name='legal_template_handler'),
 ]

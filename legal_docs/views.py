@@ -8,20 +8,29 @@ from .models import LegalDocument, LegalObligation, LegalTemplate
 from .serializers import LegalDocumentSerializer, LegalObligationSerializer, LegalTemplateSerializer
 
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def create_legal_template(request):
-    serializer = LegalTemplateSerializer(data=request.data, context={'request': request})
-    
-    if serializer.is_valid():
-        template = serializer.save()
+def legal_template_handler(request):
+    if request.method == 'GET':
+        templates = LegalTemplate.objects.filter(created_by=request.user, active=True)
+        serializer = LegalTemplateSerializer(templates, many=True)
+        
         return Response({
-            'message': 'Legal template created successfully',
-            'template_id': template.id,
-            'template_name': template.name
-        }, status=status.HTTP_201_CREATED)
+            'templates': serializer.data
+        }, status=status.HTTP_200_OK)
     
-    return Response({
-        'error': 'Invalid data',
-        'details': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == 'POST':
+        serializer = LegalTemplateSerializer(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            template = serializer.save()
+            return Response({
+                'message': 'Legal template created successfully',
+                'template_id': template.id,
+                'template_name': template.name
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response({
+            'error': 'Invalid data',
+            'details': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
