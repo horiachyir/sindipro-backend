@@ -29,6 +29,7 @@ class Equipment(models.Model):
         ('weekly', 'Weekly'),
         ('monthly', 'Monthly'),
         ('quarterly', 'Quarterly'),
+        ('semiannual', 'Semi-Annual'),
         ('semi_annual', 'Semi-Annual'),
         ('annual', 'Annual'),
     ]
@@ -45,16 +46,6 @@ class Equipment(models.Model):
     contractor_phone = models.CharField(max_length=20)
     
     # Keep some useful existing fields
-    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='equipment', null=True, blank=True)
-    equipment_type = models.CharField(max_length=20, choices=EQUIPMENT_TYPE_CHOICES, null=True, blank=True)
-    brand = models.CharField(max_length=100, blank=True)
-    model = models.CharField(max_length=100, blank=True)
-    serial_number = models.CharField(max_length=100, blank=True)
-    warranty_expiry = models.DateField(null=True, blank=True)
-    last_maintenance = models.DateField(null=True, blank=True)
-    next_maintenance = models.DateField(null=True, blank=True)
-    purchase_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    notes = models.TextField(blank=True)
     
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -65,9 +56,6 @@ class Equipment(models.Model):
     
     @property
     def maintenance_overdue(self):
-        if self.next_maintenance:
-            from django.utils import timezone
-            return self.next_maintenance < timezone.now().date()
         return False
 
 class MaintenanceRecord(models.Model):
