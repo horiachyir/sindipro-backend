@@ -25,3 +25,11 @@ def create_equipment(request):
         'error': 'Invalid data',
         'details': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_equipment(request):
+    equipment = Equipment.objects.filter(created_by=request.user)
+    serializer = EquipmentSerializer(equipment, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
