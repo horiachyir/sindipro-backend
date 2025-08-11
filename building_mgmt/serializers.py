@@ -31,6 +31,21 @@ class UnitSerializer(serializers.ModelSerializer):
             'parking_spaces', 'status'
         ]
 
+class UnitDetailSerializer(serializers.ModelSerializer):
+    block_name = serializers.CharField(source='block.name', read_only=True)
+    block_id = serializers.IntegerField(source='block.id', read_only=True)
+    building_name = serializers.CharField(source='block.building.building_name', read_only=True)
+    building_id = serializers.IntegerField(source='block.building.id', read_only=True)
+    
+    class Meta:
+        model = Unit
+        fields = [
+            'id', 'area', 'block_id', 'block_name', 'building_id', 'building_name',
+            'deposit_location', 'floor', 'has_deposit', 'ideal_fraction', 
+            'identification', 'key_delivery', 'number', 'owner', 'owner_phone',
+            'parking_spaces', 'status', 'created_at', 'updated_at'
+        ]
+
 class BuildingSerializer(serializers.ModelSerializer):
     address = AddressSerializer()
     alternative_address = AddressSerializer(required=False, allow_null=True)
