@@ -2,5 +2,5 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # API endpoints will be added here
+    path('requests/', views.field_requests, name='field-requests'),
 ]
