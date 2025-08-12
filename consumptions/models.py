@@ -69,3 +69,54 @@ class ConsumptionReading(models.Model):
                     self.percentage_change = round(change, 2)
         
         super().save(*args, **kwargs)
+
+
+class ConsumptionRegister(models.Model):
+    UTILITY_TYPE_CHOICES = [
+        ('water', 'Water'),
+        ('electricity', 'Electricity'),
+        ('gas', 'Gas'),
+    ]
+    
+    CATEGORY_CHOICES = [
+        ('units', 'Units'),
+        ('liters', 'Liters'),
+        ('kwh', 'kWh'),
+        ('m3', 'Cubic Meters'),
+    ]
+    
+    date = models.DateField()
+    utility_type = models.CharField(max_length=20, choices=UTILITY_TYPE_CHOICES)
+    gas_category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, null=True, blank=True)
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'consumptions_consumption_register'
+        ordering = ['-date']
+    
+    def __str__(self):
+        return f"{self.utility_type} - {self.value} - {self.date}"
+
+
+class ConsumptionAccount(models.Model):
+    UTILITY_TYPE_CHOICES = [
+        ('water', 'Water'),
+        ('electricity', 'Electricity'),
+        ('gas', 'Gas'),
+    ]
+    
+    month = models.CharField(max_length=7)  # Format: YYYY-MM
+    utility_type = models.CharField(max_length=20, choices=UTILITY_TYPE_CHOICES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'consumptions_consumption_account'
+        ordering = ['-month']
+    
+    def __str__(self):
+        return f"{self.utility_type} - {self.amount} - {self.month}"
