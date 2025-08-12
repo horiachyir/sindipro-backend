@@ -6,29 +6,43 @@ from .models import ConsumptionRegister, ConsumptionAccount
 from .serializers import ConsumptionRegisterSerializer, ConsumptionAccountSerializer
 
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def create_consumption_register(request):
+def consumption_register(request):
     """
-    Create a new consumption register entry.
-    Expected data: {date, gasCategory, utilityType, value}
+    GET: Retrieve all consumption register entries.
+    POST: Create a new consumption register entry.
+    Expected POST data: {date, gasCategory, utilityType, value}
     """
-    serializer = ConsumptionRegisterSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    if request.method == 'GET':
+        registers = ConsumptionRegister.objects.all()
+        serializer = ConsumptionRegisterSerializer(registers, many=True)
+        return Response(serializer.data)
+    
+    elif request.method == 'POST':
+        serializer = ConsumptionRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def create_consumption_account(request):
+def consumption_account(request):
     """
-    Create a new consumption account entry.
-    Expected data: {amount, month, paymentDate, utilityType}
+    GET: Retrieve all consumption account entries.
+    POST: Create a new consumption account entry.
+    Expected POST data: {amount, month, paymentDate, utilityType}
     """
-    serializer = ConsumptionAccountSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    if request.method == 'GET':
+        accounts = ConsumptionAccount.objects.all()
+        serializer = ConsumptionAccountSerializer(accounts, many=True)
+        return Response(serializer.data)
+    
+    elif request.method == 'POST':
+        serializer = ConsumptionAccountSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
