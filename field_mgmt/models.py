@@ -5,66 +5,16 @@ from building_mgmt.models import Building, Unit
 User = get_user_model()
 
 class FieldRequest(models.Model):
-    REQUEST_TYPE_CHOICES = [
-        ('maintenance', 'Maintenance Request'),
-        ('complaint', 'Complaint'),
-        ('suggestion', 'Suggestion'),
-        ('information', 'Information Request'),
-        ('emergency', 'Emergency'),
-    ]
-    
-    PRIORITY_CHOICES = [
-        ('low', 'Low'),
-        ('medium', 'Medium'),
-        ('high', 'High'),
-        ('urgent', 'Urgent'),
-    ]
-    
-    STATUS_CHOICES = [
-        ('submitted', 'Submitted'),
-        ('in_review', 'In Review'),
-        ('approved', 'Approved'),
-        ('in_progress', 'In Progress'),
-        ('completed', 'Completed'),
-        ('rejected', 'Rejected'),
-        ('cancelled', 'Cancelled'),
-    ]
-    
     building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='field_requests')
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
-    request_type = models.CharField(max_length=20, choices=REQUEST_TYPE_CHOICES)
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='submitted')
-    
-    # Request Details
+    caretaker = models.CharField(max_length=200, default='')
     title = models.CharField(max_length=200)
-    description = models.TextField()
-    location = models.CharField(max_length=200, blank=True)
+    items = models.JSONField(default=list)  # Store array of items with observations, productType, quantity
     
-    # Requester Information
-    requester_name = models.CharField(max_length=200)
-    requester_phone = models.CharField(max_length=20)
-    requester_email = models.EmailField(blank=True)
-    
-    # Dates
-    requested_date = models.DateField(auto_now_add=True)
-    preferred_date = models.DateField(null=True, blank=True)
-    completed_date = models.DateField(null=True, blank=True)
-    
-    # Assignment
-    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_requests')
-    estimated_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    actual_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    
-    # Resolution
-    resolution_notes = models.TextField(blank=True)
-    
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.title} - {self.building.name} - {self.status}"
+        return f"{self.title} - {self.building.name}"
     
     class Meta:
         ordering = ['-created_at']
