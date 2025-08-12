@@ -10,12 +10,12 @@ from .serializers import FieldRequestSerializer
 
 @csrf_exempt
 @api_view(['GET', 'POST'])
-@permission_classes([])  # Temporarily disable authentication for debugging
+@permission_classes([IsAuthenticated])
 def field_requests(request):
     """
     GET: Retrieve all field requests.
     POST: Create a new field request.
-    Expected POST data: {building, caretaker, title, items}
+    Expected POST data: {building_id, caretaker, title, items}
     """
     if request.method == 'GET':
         requests = FieldRequest.objects.all()
