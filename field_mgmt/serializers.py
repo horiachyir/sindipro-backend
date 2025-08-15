@@ -6,15 +6,14 @@ from building_mgmt.models import Building
 class FieldRequestSerializer(serializers.ModelSerializer):
     building_id = serializers.PrimaryKeyRelatedField(
         queryset=Building.objects.all(), 
-        source='building',
-        write_only=True
+        source='building'
     )
-    building = serializers.StringRelatedField(read_only=True)
+    building_name = serializers.CharField(source='building.building_name', read_only=True)
     
     class Meta:
         model = FieldRequest
-        fields = ['id', 'building_id', 'building', 'caretaker', 'title', 'items', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'building', 'created_at', 'updated_at']
+        fields = ['id', 'building_id', 'building_name', 'caretaker', 'title', 'items', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'building_name', 'created_at', 'updated_at']
     
     def validate_items(self, value):
         """Validate items structure"""

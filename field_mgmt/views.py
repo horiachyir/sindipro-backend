@@ -18,7 +18,7 @@ def field_requests(request):
     Expected POST data: {building_id, caretaker, title, items}
     """
     if request.method == 'GET':
-        requests = FieldRequest.objects.all()
+        requests = FieldRequest.objects.all().order_by('-created_at')
         serializer = FieldRequestSerializer(requests, many=True)
         return Response(serializer.data)
     
