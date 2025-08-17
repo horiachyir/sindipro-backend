@@ -115,6 +115,7 @@ class FieldMgmtTechnical(models.Model):
         ('low', 'Low'),
         ('medium', 'Medium'),
         ('high', 'High'),
+        ('urgent', 'Urgent'),
     ]
     
     company_email = models.EmailField()
