@@ -136,8 +136,13 @@ class FieldMgmtTechnical(models.Model):
 
 class FieldMgmtTechnicalImage(models.Model):
     technical_request = models.ForeignKey(FieldMgmtTechnical, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='technical_images/')
+    image_data = models.BinaryField()  # Stores raw image bytes (BYTEA in PostgreSQL)
+    mime_type = models.CharField(max_length=50, default='image/png')  # e.g., 'image/png', 'image/jpeg'
+    filename = models.CharField(max_length=255, blank=True)  # Optional original filename
     uploaded_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
         return f"Image for {self.technical_request.title}"
+    
+    class Meta:
+        db_table = 'field_mgmt_fieldmgmttechnicalimage'

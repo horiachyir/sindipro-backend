@@ -38,10 +38,21 @@ class FieldRequestSerializer(serializers.ModelSerializer):
 
 
 class FieldMgmtTechnicalImageSerializer(serializers.ModelSerializer):
+    image_data_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = FieldMgmtTechnicalImage
-        fields = ['id', 'image', 'uploaded_at']
+        fields = ['id', 'image_data_url', 'mime_type', 'filename', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
+    
+    def get_image_data_url(self, obj):
+        """Convert binary image data back to data URL format for frontend"""
+        if obj.image_data:
+            # Encode binary data to base64
+            base64_data = base64.b64encode(obj.image_data).decode('utf-8')
+            # Return as data URL
+            return f"data:{obj.mime_type};base64,{base64_data}"
+        return None
 
 
 class FieldMgmtTechnicalSerializer(serializers.ModelSerializer):
@@ -62,14 +73,31 @@ class FieldMgmtTechnicalSerializer(serializers.ModelSerializer):
         image_data_list = validated_data.pop('image_data', [])
         technical_request = FieldMgmtTechnical.objects.create(**validated_data)
         
-        for image_data in image_data_list:
-            if image_data.startswith('data:image'):
-                format, imgstr = image_data.split(';base64,')
-                ext = format.split('/')[-1]
-                data = ContentFile(base64.b64decode(imgstr), name=f'technical_{technical_request.id}_{len(technical_request.images.all())}.{ext}')
-                FieldMgmtTechnicalImage.objects.create(
-                    technical_request=technical_request,
-                    image=data
-                )
+        for idx, image_data_url in enumerate(image_data_list):
+            if image_data_url.startswith('data:'):
+                # Parse the data URL
+                # Format: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA...
+                try:
+                    # Split header and data
+                    header, encoded_data = image_data_url.split(',', 1)
+                    # Extract MIME type
+                    mime_type = header.split(':')[1].split(';')[0]
+                    # Decode base64 to binary
+                    binary_data = base64.b64decode(encoded_data)
+                    
+                    # Generate filename
+                    ext = mime_type.split('/')[-1]
+                    filename = f'technical_{technical_request.id}_{idx}.{ext}'
+                    
+                    # Create image record
+                    FieldMgmtTechnicalImage.objects.create(
+                        technical_request=technical_request,
+                        image_data=binary_data,
+                        mime_type=mime_type,
+                        filename=filename
+                    )
+                except Exception as e:
+                    print(f"Error processing image {idx}: {str(e)}")
+                    continue
         
         return technical_request
