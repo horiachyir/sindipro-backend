@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from building_mgmt.models import Building, Unit
+import base64
+from django.core.files.base import ContentFile
 
 User = get_user_model()
 
@@ -106,3 +108,36 @@ class SurveyResponse(models.Model):
     
     class Meta:
         ordering = ['-submitted_at']
+
+
+class FieldMgmtTechnical(models.Model):
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
+    
+    company_email = models.EmailField()
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    location = models.CharField(max_length=200)
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.title} - {self.company_email}"
+    
+    class Meta:
+        ordering = ['-created_at']
+        db_table = 'field_mgmt_technical'
+
+
+class FieldMgmtTechnicalImage(models.Model):
+    technical_request = models.ForeignKey(FieldMgmtTechnical, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='technical_images/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Image for {self.technical_request.title}"
