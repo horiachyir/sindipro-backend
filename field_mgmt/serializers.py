@@ -57,7 +57,7 @@ class FieldMgmtTechnicalImageSerializer(serializers.ModelSerializer):
 
 class FieldMgmtTechnicalSerializer(serializers.ModelSerializer):
     images = FieldMgmtTechnicalImageSerializer(many=True, read_only=True)
-    image_data = serializers.ListField(
+    photos = serializers.ListField(
         child=serializers.CharField(),
         write_only=True,
         required=False
@@ -66,14 +66,14 @@ class FieldMgmtTechnicalSerializer(serializers.ModelSerializer):
     class Meta:
         model = FieldMgmtTechnical
         fields = ['id', 'company_email', 'title', 'description', 'location', 
-                 'priority', 'images', 'image_data', 'created_at', 'updated_at']
+                 'priority', 'images', 'photos', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at', 'images']
     
     def create(self, validated_data):
-        image_data_list = validated_data.pop('image_data', [])
+        photos_list = validated_data.pop('photos', [])
         technical_request = FieldMgmtTechnical.objects.create(**validated_data)
         
-        for idx, image_data_url in enumerate(image_data_list):
+        for idx, image_data_url in enumerate(photos_list):
             if image_data_url.startswith('data:'):
                 # Parse the data URL
                 # Format: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA...

@@ -42,7 +42,7 @@ def technical_requests(request):
     """
     GET: Retrieve all technical field requests.
     POST: Create a new technical field request.
-    Expected POST data: {company_email, title, description, location, priority, image_data}
+    Expected POST data: {company_email, title, description, location, priority, photos}
     """
     if request.method == 'GET':
         requests = FieldMgmtTechnical.objects.all().order_by('-created_at')
