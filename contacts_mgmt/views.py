@@ -5,19 +5,25 @@ from rest_framework.permissions import IsAuthenticated
 from .models import ContactsEvent
 from .serializers import ContactsEventSerializer
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def create_event(request):
-    serializer = ContactsEventSerializer(data=request.data)
+def event_handler(request):
+    if request.method == 'GET':
+        events = ContactsEvent.objects.all()
+        serializer = ContactsEventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
-    if serializer.is_valid():
-        event = serializer.save(created_by=request.user)
+    elif request.method == 'POST':
+        serializer = ContactsEventSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            event = serializer.save(created_by=request.user)
+            return Response({
+                'message': 'Event created successfully',
+                'event': ContactsEventSerializer(event).data
+            }, status=status.HTTP_201_CREATED)
+        
         return Response({
-            'message': 'Event created successfully',
-            'event': ContactsEventSerializer(event).data
-        }, status=status.HTTP_201_CREATED)
-    
-    return Response({
-        'error': 'Invalid data',
-        'details': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+            'error': 'Invalid data',
+            'details': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
