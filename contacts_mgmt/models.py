@@ -4,15 +4,8 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class ContactsEvent(models.Model):
-    EVENT_TYPE_CHOICES = [
-        ('meetingEvent', 'Meeting Event'),
-        ('generalEvent', 'General Event'),
-        ('maintenanceEvent', 'Maintenance Event'),
-        ('emergencyEvent', 'Emergency Event'),
-    ]
-    
     title = models.CharField(max_length=255)
-    event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES)
+    event_type = models.CharField(max_length=50)
     date_time = models.DateTimeField()
     condominium = models.CharField(max_length=255)
     people_involved = models.JSONField(default=list)

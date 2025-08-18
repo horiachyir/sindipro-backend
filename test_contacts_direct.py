@@ -59,23 +59,43 @@ def test_serializer():
     """Test ContactsEventSerializer"""
     print("\nTesting ContactsEventSerializer...")
     
-    event_data = {
-        "title": "dfdf",
-        "event_type": "meetingEvent", 
+    # Test with generalAssemblyEvent
+    event_data_1 = {
+        "title": "General Assembly Meeting",
+        "event_type": "generalAssemblyEvent", 
         "date_time": "2025-08-18T06:53:00Z",
         "condominium": "Edifício Central",
-        "people_involved": ["dfe"],
-        "comments": "dfdfd"
+        "people_involved": ["John Doe", "Jane Smith"],
+        "comments": "Annual general assembly"
     }
     
-    serializer = ContactsEventSerializer(data=event_data)
+    serializer1 = ContactsEventSerializer(data=event_data_1)
     
-    if serializer.is_valid():
-        print("✅ Serializer is valid")
-        print("Validated data:", serializer.validated_data)
+    if serializer1.is_valid():
+        print("✅ generalAssemblyEvent serializer is valid")
+        print("Validated data:", serializer1.validated_data)
     else:
-        print("❌ Serializer validation failed")
-        print("Errors:", serializer.errors)
+        print("❌ generalAssemblyEvent serializer validation failed")
+        print("Errors:", serializer1.errors)
+    
+    # Test with custom event type
+    event_data_2 = {
+        "title": "Custom Event",
+        "event_type": "customEventType", 
+        "date_time": "2025-08-18T06:53:00Z",
+        "condominium": "Test Building",
+        "people_involved": ["Person 1"],
+        "comments": "Custom event type test"
+    }
+    
+    serializer2 = ContactsEventSerializer(data=event_data_2)
+    
+    if serializer2.is_valid():
+        print("✅ customEventType serializer is valid")
+        print("Validated data:", serializer2.validated_data)
+    else:
+        print("❌ customEventType serializer validation failed")
+        print("Errors:", serializer2.errors)
 
 def test_database_table():
     """Check if table exists in database"""
