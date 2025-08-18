@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'field_mgmt',
     'reporting',
     'users_mgmt',
+    'contacts_mgmt',
 ]
 
 MIDDLEWARE = [

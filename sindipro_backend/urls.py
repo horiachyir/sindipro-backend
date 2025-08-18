@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/field/', include('field_mgmt.urls')),
     path('api/reports/', include('reporting.urls')),
     path('api/users/', include('users_mgmt.urls')),
+    path('api/contacts/', include('contacts_mgmt.urls')),
 ]
 
 # Media files serving for development
