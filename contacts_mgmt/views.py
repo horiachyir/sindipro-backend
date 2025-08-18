@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
 from .models import ContactsEvent
 from .serializers import ContactsEventSerializer
 
@@ -27,3 +28,29 @@ def event_handler(request):
             'error': 'Invalid data',
             'details': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def event_detail_handler(request, id):
+    event = get_object_or_404(ContactsEvent, id=id)
+    
+    if request.method == 'PUT':
+        serializer = ContactsEventSerializer(event, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            updated_event = serializer.save()
+            return Response({
+                'message': 'Event updated successfully',
+                'event': ContactsEventSerializer(updated_event).data
+            }, status=status.HTTP_200_OK)
+        
+        return Response({
+            'error': 'Invalid data',
+            'details': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        event.delete()
+        return Response({
+            'message': 'Event deleted successfully'
+        }, status=status.HTTP_200_OK)
