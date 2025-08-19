@@ -149,6 +149,33 @@ class BuildingSerializer(serializers.ModelSerializer):
         units_per_tower_array = data.get('units_per_tower_array', []) 
         number_of_towers = data.get('number_of_towers', 0)
         
+        # If tower_names is empty but number_of_towers > 0, generate default names
+        if len(tower_names) == 0 and number_of_towers > 0:
+            if number_of_towers == 1:
+                tower_names = ['Tower 1']
+            else:
+                tower_names = [f'Tower {i+1}' for i in range(number_of_towers)]
+            data['tower_names'] = tower_names
+        
+        # If units_per_tower_array is empty but number_of_towers > 0, use totalUnits
+        if len(units_per_tower_array) == 0 and number_of_towers > 0:
+            # Check for totalUnits in the original data (before field mapping)
+            original_data = self.initial_data
+            total_units = original_data.get('totalUnits')
+            if total_units:
+                # Distribute units evenly across towers
+                units_per_tower = total_units // number_of_towers
+                remainder = total_units % number_of_towers
+                units_per_tower_array = [units_per_tower] * number_of_towers
+                # Add remainder to the last tower
+                if remainder > 0:
+                    units_per_tower_array[-1] += remainder
+                data['units_per_tower_array'] = units_per_tower_array
+            else:
+                # If no totalUnits provided, set a default of 1 unit per tower
+                units_per_tower_array = [1] * number_of_towers
+                data['units_per_tower_array'] = units_per_tower_array
+        
         if len(tower_names) != len(units_per_tower_array):
             raise serializers.ValidationError(
                 "tower_names and units_per_tower_array must have the same length"
