@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from .models import Building, Tower, Unit
-from .serializers import BuildingSerializer, BuildingReadSerializer, UnitSerializer, UnitDetailSerializer
+from .serializers import BuildingSerializer, BuildingReadSerializer, UnitSerializer, UnitDetailSerializer, BuildingBasicSerializer
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -48,6 +48,17 @@ def create_building(request):
         'error': 'Invalid data',
         'details': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_buildings(request):
+    """
+    Get all buildings with only id and building_name fields.
+    Accessible to all authenticated users regardless of role.
+    """
+    buildings = Building.objects.all().only('id', 'building_name')
+    serializer = BuildingBasicSerializer(buildings, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -95,3 +106,14 @@ def create_unit(request, tower_id):
         'error': 'Invalid data',
         'details': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_buildings(request):
+    """
+    Get all buildings with only id and building_name fields.
+    Accessible to all authenticated users regardless of role.
+    """
+    buildings = Building.objects.all().only('id', 'building_name')
+    serializer = BuildingBasicSerializer(buildings, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)

@@ -238,3 +238,8 @@ class BuildingReadSerializer(serializers.ModelSerializer):
             'non_residential_units', 'studio_units', 'wave_units',
             'towers', 'created_at', 'updated_at'
         ]
+
+class BuildingBasicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Building
+        fields = ['id', 'building_name']
