@@ -50,11 +50,10 @@ def create_building(request):
     }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_all_buildings(request):
     """
     Get all buildings with only id and building_name fields.
-    Accessible to all authenticated users regardless of role.
+    Accessible without authentication for frontend signup process.
     """
     buildings = Building.objects.all().only('id', 'building_name')
     serializer = BuildingBasicSerializer(buildings, many=True)
@@ -106,14 +105,3 @@ def create_unit(request, tower_id):
         'error': 'Invalid data',
         'details': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_all_buildings(request):
-    """
-    Get all buildings with only id and building_name fields.
-    Accessible to all authenticated users regardless of role.
-    """
-    buildings = Building.objects.all().only('id', 'building_name')
-    serializer = BuildingBasicSerializer(buildings, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
