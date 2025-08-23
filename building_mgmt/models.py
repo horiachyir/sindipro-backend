@@ -54,7 +54,7 @@ class Building(models.Model):
     studio_units = models.PositiveIntegerField(null=True, blank=True)
     wave_units = models.PositiveIntegerField(null=True, blank=True)
     
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_buildings')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

@@ -5,10 +5,13 @@ from django.contrib.auth.password_validation import validate_password
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    building_id = serializers.PrimaryKeyRelatedField(source='building', read_only=True)
+    building_name = serializers.CharField(source='building.building_name', read_only=True)
+    
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'phone', 'is_active_user', 'date_joined')
-        read_only_fields = ('id', 'date_joined')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'phone', 'is_active_user', 'date_joined', 'building_id', 'building_name')
+        read_only_fields = ('id', 'date_joined', 'building_id', 'building_name')
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -36,7 +39,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    building_id = serializers.PrimaryKeyRelatedField(source='building', read_only=True)
+    building_name = serializers.CharField(source='building.building_name', read_only=True)
+    
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'phone', 'is_active_user', 'date_joined')
-        read_only_fields = ('id', 'username', 'date_joined')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'phone', 'is_active_user', 'date_joined', 'building_id', 'building_name')
+        read_only_fields = ('id', 'username', 'date_joined', 'building_id', 'building_name')
