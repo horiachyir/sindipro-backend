@@ -78,7 +78,7 @@ DATABASES = {
         'NAME': config('DB_NAME', default='felipe_db'),
         'USER': config('DB_USER', default='avnadmin'),
         'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='pg-e56d354-horiachyir-880f.f.aivencloud.com'),
+        'HOST': config('DB_HOST', default='pg-388d85e4-horiachyir-880f.d.aivencloud.com'),
         'PORT': config('DB_PORT', default='19239'),
     }
 }
