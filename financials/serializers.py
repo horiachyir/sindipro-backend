@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import FinancialMainAccount, AnnualBudget, BudgetCategory
+from .models import FinancialMainAccount, AnnualBudget, BudgetCategory, Expense
 from building_mgmt.models import Building
 from datetime import datetime
 
@@ -61,3 +61,39 @@ class AnnualBudgetSerializer(serializers.ModelSerializer):
         )
         
         return annual_budget
+
+class ExpenseSerializer(serializers.ModelSerializer):
+    buildingId = serializers.IntegerField(source='building_id')
+    category = serializers.CharField()
+    month = serializers.CharField()
+    
+    class Meta:
+        model = Expense
+        fields = ['amount', 'buildingId', 'category', 'month']
+        
+    def create(self, validated_data):
+        category_name = validated_data.pop('category')
+        month_str = validated_data.pop('month')
+        
+        # Get or create budget category
+        category, created = BudgetCategory.objects.get_or_create(
+            name=category_name,
+            defaults={'description': f'Category for {category_name}'}
+        )
+        
+        # Parse month string (format: YYYY-MM) and create expense_date as first day of month
+        year, month = month_str.split('-')
+        expense_date = datetime(int(year), int(month), 1).date()
+        
+        # Create expense with required fields
+        expense = Expense.objects.create(
+            building_id=validated_data['building_id'],
+            category=category,
+            amount=validated_data['amount'],
+            expense_date=expense_date,
+            expense_type='maintenance',  # Default type based on input
+            description=f'{category_name} expense for {month_str}',
+            created_by=self.context.get('request').user if self.context.get('request') else None
+        )
+        
+        return expense
