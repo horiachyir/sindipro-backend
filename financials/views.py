@@ -54,7 +54,7 @@ def annual_budget_view(request):
     {
         "account_category": "maintenance",
         "budgeted_amount": 5,
-        "building_id": 1,
+        "building_id": 1, 
         "sub_item": "aaa"
     }
     """
@@ -98,7 +98,7 @@ def expense_view(request):
     Expected data structure:
     {
         "amount": 7,
-        "buildingId": "1",
+        "buildingId": "1", 
         "category": "maintenance",
         "month": "2025-10"
     }
