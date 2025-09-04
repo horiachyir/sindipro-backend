@@ -97,3 +97,24 @@ class ExpenseSerializer(serializers.ModelSerializer):
         )
         
         return expense
+
+class ExpenseReadSerializer(serializers.ModelSerializer):
+    building = BuildingInfoSerializer(read_only=True)
+    category = serializers.CharField(source='category.name', read_only=True)
+    expense_type = serializers.CharField(read_only=True)
+    expense_date = serializers.DateField(read_only=True)
+    
+    class Meta:
+        model = Expense
+        fields = ['id', 'building', 'category', 'expense_type', 'description', 'amount', 
+                 'expense_date', 'vendor', 'invoice_number', 'payment_method', 'notes', 
+                 'created_at', 'updated_at']
+
+class AnnualBudgetReadSerializer(serializers.ModelSerializer):
+    building = BuildingInfoSerializer(read_only=True)
+    category = serializers.CharField(source='category.name', read_only=True)
+    
+    class Meta:
+        model = AnnualBudget
+        fields = ['id', 'building', 'year', 'category', 'sub_item', 'budgeted_amount', 
+                 'created_at', 'updated_at']
