@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import FinancialMainAccount, AnnualBudget, BudgetCategory, Expense
+from .models import FinancialMainAccount, AnnualBudget, BudgetCategory, Expense, Collection
 from building_mgmt.models import Building
 from datetime import datetime
 
@@ -117,4 +117,36 @@ class AnnualBudgetReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnnualBudget
         fields = ['id', 'building', 'year', 'category', 'sub_item', 'budgeted_amount', 
+                 'created_at', 'updated_at']
+
+class CollectionSerializer(serializers.ModelSerializer):
+    buildingId = serializers.IntegerField(source='building_id')
+    monthlyAmount = serializers.DecimalField(source='monthly_amount', max_digits=12, decimal_places=2)
+    startDate = serializers.DateField(source='start_date')
+    
+    class Meta:
+        model = Collection
+        fields = ['buildingId', 'name', 'purpose', 'monthlyAmount', 'startDate', 'active']
+        
+    def create(self, validated_data):
+        collection = Collection.objects.create(
+            building_id=validated_data['building_id'],
+            name=validated_data['name'],
+            purpose=validated_data['purpose'],
+            monthly_amount=validated_data['monthly_amount'],
+            start_date=validated_data['start_date'],
+            active=validated_data['active'],
+            created_by=self.context.get('request').user if self.context.get('request') else None
+        )
+        
+        return collection
+
+class CollectionReadSerializer(serializers.ModelSerializer):
+    building = BuildingInfoSerializer(read_only=True)
+    monthlyAmount = serializers.DecimalField(source='monthly_amount', max_digits=12, decimal_places=2, read_only=True)
+    startDate = serializers.DateField(source='start_date', read_only=True)
+    
+    class Meta:
+        model = Collection
+        fields = ['id', 'building', 'name', 'purpose', 'monthlyAmount', 'startDate', 'active', 
                  'created_at', 'updated_at']

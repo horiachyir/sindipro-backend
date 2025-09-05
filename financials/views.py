@@ -2,10 +2,10 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .models import FinancialMainAccount, AnnualBudget, Expense
+from .models import FinancialMainAccount, AnnualBudget, Expense, Collection
 from .serializers import (FinancialMainAccountSerializer, FinancialMainAccountReadSerializer, 
                           AnnualBudgetSerializer, ExpenseSerializer, ExpenseReadSerializer, 
-                          AnnualBudgetReadSerializer)
+                          AnnualBudgetReadSerializer, CollectionSerializer, CollectionReadSerializer)
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -126,6 +126,53 @@ def expense_view(request):
                 'amount': str(expense.amount),
                 'expense_date': expense.expense_date.strftime('%Y-%m-%d'),
                 'building_id': expense.building_id
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response({
+            'error': 'Invalid data',
+            'details': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def collection_view(request):
+    """
+    GET: Retrieve collection entries with building information
+         Optional query parameter: building_id to filter by building
+    POST: Create a new collection entry
+    Expected data structure:
+    {
+        "active": true,
+        "buildingId": 1,
+        "monthlyAmount": 3,
+        "name": "Test",
+        "purpose": "sdfef",
+        "startDate": "2025-09-06"
+    }
+    """
+    if request.method == 'GET':
+        collections = Collection.objects.select_related('building').all()
+        
+        # Filter by building_id if provided
+        building_id = request.GET.get('building_id')
+        if building_id:
+            collections = collections.filter(building_id=building_id)
+        
+        serializer = CollectionReadSerializer(collections, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    elif request.method == 'POST':
+        serializer = CollectionSerializer(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            collection = serializer.save()
+            return Response({
+                'message': 'Collection created successfully',
+                'collection_id': collection.id,
+                'name': collection.name,
+                'monthly_amount': str(collection.monthly_amount),
+                'start_date': collection.start_date.strftime('%Y-%m-%d'),
+                'building_id': collection.building_id,
+                'active': collection.active
             }, status=status.HTTP_201_CREATED)
         
         return Response({
