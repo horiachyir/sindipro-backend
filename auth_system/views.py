@@ -18,13 +18,8 @@ class RegisterView(generics.CreateAPIView):
     authentication_classes = []  # Disable authentication for registration
 
     def create(self, request, *args, **kwargs):
-        # Check if building_id is provided
+        # Get building_id if provided (optional)
         building_id = request.data.get('building_id')
-        if not building_id:
-            return Response(
-                {"errors": {"building_id": "Please select a building to proceed with registration"}}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
@@ -37,7 +32,11 @@ class RegisterView(generics.CreateAPIView):
                     formatted_errors[field] = str(errors)
             return Response({"errors": formatted_errors}, status=status.HTTP_400_BAD_REQUEST)
             
-        user = serializer.save(building_id=building_id)
+        # Save user with building_id if provided, otherwise without it
+        if building_id:
+            user = serializer.save(building_id=building_id)
+        else:
+            user = serializer.save()
         
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
@@ -60,18 +59,11 @@ class CustomLoginView(TokenObtainPairView):
         # Get the email/username and password from request
         email = request.data.get('email')
         password = request.data.get('password')
-        building_id = request.data.get('building_id')
+        building_id = request.data.get('building_id')  # Optional
         
         if not email or not password:
             return Response(
                 {"errors": {"email": "Email is required", "password": "Password is required"}}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Check if building_id is provided
-        if not building_id:
-            return Response(
-                {"errors": {"building_id": "Please select a building to proceed with login"}}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -90,9 +82,10 @@ class CustomLoginView(TokenObtainPairView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Update user's building_id
-        user.building_id = building_id
-        user.save(update_fields=['building_id'])
+        # Update user's building_id only if provided
+        if building_id:
+            user.building_id = building_id
+            user.save(update_fields=['building_id'])
         
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
