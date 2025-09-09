@@ -20,7 +20,7 @@ class LegalObligationAdmin(admin.ModelAdmin):
 
 @admin.register(LegalTemplate)
 class LegalTemplateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'frequency', 'active', 'days_before_expiry', 'requires_quote', 'created_at']
-    list_filter = ['active', 'frequency', 'requires_quote']
-    search_fields = ['name', 'description', 'conditions']
+    list_display = ['name', 'frequency', 'active', 'building_type', 'requires_quote', 'due_month', 'created_at']
+    list_filter = ['active', 'frequency', 'requires_quote', 'building_type', 'due_month']
+    search_fields = ['name', 'description', 'conditions', 'responsible_emails']
     readonly_fields = ['created_at', 'updated_at', 'created_by']

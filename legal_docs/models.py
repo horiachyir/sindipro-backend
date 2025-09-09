@@ -126,11 +126,9 @@ class LegalTemplate(models.Model):
     
     name = models.CharField(max_length=200)
     description = models.TextField()
-    building_types = models.JSONField(default=list)  # List of building types (legacy)
     building_type = models.CharField(max_length=20, choices=BUILDING_TYPE_CHOICES, null=True, blank=True)  # Single building type
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default='annual')
     conditions = models.TextField(blank=True)
-    days_before_expiry = models.IntegerField(default=30)
     requires_quote = models.BooleanField(default=False)
     active = models.BooleanField(default=True)
     due_month = models.CharField(max_length=20, choices=MONTH_CHOICES, null=True, blank=True)
