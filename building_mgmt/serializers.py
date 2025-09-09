@@ -19,28 +19,26 @@ class TowerSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'units_per_tower', 'unit_distribution']
 
 class UnitSerializer(serializers.ModelSerializer):
-    block_name = serializers.CharField(source='block.name', read_only=True)
-    block_id = serializers.IntegerField(read_only=True, source='block.id')
+    building_name = serializers.CharField(source='building.building_name', read_only=True)
+    building_id = serializers.IntegerField(read_only=True, source='building.id')
     
     class Meta:
         model = Unit
         fields = [
-            'id', 'area', 'block_id', 'block_name', 'deposit_location',
+            'id', 'area', 'building_id', 'building_name', 'deposit_location',
             'floor', 'has_deposit', 'ideal_fraction', 'identification',
             'key_delivery', 'number', 'owner', 'owner_phone',
             'parking_spaces', 'status'
         ]
 
 class UnitDetailSerializer(serializers.ModelSerializer):
-    block_name = serializers.CharField(source='block.name', read_only=True)
-    block_id = serializers.IntegerField(source='block.id', read_only=True)
-    building_name = serializers.CharField(source='block.building.building_name', read_only=True)
-    building_id = serializers.IntegerField(source='block.building.id', read_only=True)
+    building_name = serializers.CharField(source='building.building_name', read_only=True)
+    building_id = serializers.IntegerField(source='building.id', read_only=True)
     
     class Meta:
         model = Unit
         fields = [
-            'id', 'area', 'block_id', 'block_name', 'building_id', 'building_name',
+            'id', 'area', 'building_id', 'building_name',
             'deposit_location', 'floor', 'has_deposit', 'ideal_fraction', 
             'identification', 'key_delivery', 'number', 'owner', 'owner_phone',
             'parking_spaces', 'status', 'created_at', 'updated_at'
