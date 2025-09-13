@@ -26,7 +26,7 @@ test_data = {
     "location": "test2",
     "priority": "medium",
     "title": "Test 1",
-    "image_data": [
+    "photos": [
         "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
     ]
 }

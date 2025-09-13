@@ -65,9 +65,9 @@ class FieldMgmtTechnicalSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = FieldMgmtTechnical
-        fields = ['id', 'company_email', 'title', 'description', 'location', 
+        fields = ['id', 'code', 'company_email', 'title', 'description', 'location',
                  'priority', 'images', 'photos', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'images']
+        read_only_fields = ['id', 'code', 'created_at', 'updated_at', 'images']
     
     def create(self, validated_data):
         photos_list = validated_data.pop('photos', [])

@@ -3,6 +3,9 @@ from django.contrib.auth import get_user_model
 from building_mgmt.models import Building, Unit
 import base64
 from django.core.files.base import ContentFile
+import uuid
+import string
+import random
 
 User = get_user_model()
 
@@ -110,6 +113,15 @@ class SurveyResponse(models.Model):
         ordering = ['-submitted_at']
 
 
+def generate_unique_code():
+    """Generate a unique 8-character code combining letters and numbers"""
+    characters = string.ascii_uppercase + string.digits
+    while True:
+        code = ''.join(random.choices(characters, k=8))
+        # Check if this code already exists
+        if not FieldMgmtTechnical.objects.filter(code=code).exists():
+            return code
+
 class FieldMgmtTechnical(models.Model):
     PRIORITY_CHOICES = [
         ('low', 'Low'),
@@ -117,13 +129,14 @@ class FieldMgmtTechnical(models.Model):
         ('high', 'High'),
         ('urgent', 'Urgent'),
     ]
-    
+
+    code = models.CharField(max_length=8, unique=True, default=generate_unique_code)
     company_email = models.EmailField()
     title = models.CharField(max_length=200)
     description = models.TextField()
     location = models.CharField(max_length=200)
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
