@@ -238,6 +238,9 @@ class BuildingReadSerializer(serializers.ModelSerializer):
         ]
 
 class BuildingBasicSerializer(serializers.ModelSerializer):
+    address = AddressSerializer(read_only=True)
+    alternative_address = AddressSerializer(read_only=True)
+
     class Meta:
         model = Building
-        fields = ['id', 'building_name']
+        fields = ['id', 'building_name', 'address', 'alternative_address']

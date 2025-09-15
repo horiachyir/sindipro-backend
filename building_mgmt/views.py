@@ -53,10 +53,10 @@ def create_building(request):
 @permission_classes([AllowAny])
 def get_all_buildings(request):
     """
-    Get all buildings with only id and building_name fields.
+    Get all buildings with id, building_name, and address fields.
     Accessible without authentication for frontend signup process.
     """
-    buildings = Building.objects.all().only('id', 'building_name')
+    buildings = Building.objects.all().select_related('address', 'alternative_address')
     serializer = BuildingBasicSerializer(buildings, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
