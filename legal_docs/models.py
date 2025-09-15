@@ -111,7 +111,7 @@ class LegalTemplate(models.Model):
 
     name = models.CharField(max_length=200)
     description = models.TextField()
-    building_id = models.ForeignKey(Building, on_delete=models.CASCADE, null=True, blank=True)
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, null=True, blank=True)
     building_type = models.CharField(max_length=20, choices=BUILDING_TYPE_CHOICES, null=True, blank=True)
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default='annual')
     conditions = models.TextField(blank=True)

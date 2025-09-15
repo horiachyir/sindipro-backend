@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import LegalDocument, LegalObligation, LegalTemplate
+from building_mgmt.models import Building
 
 
 class LegalDocumentSerializer(serializers.ModelSerializer):
@@ -22,7 +23,12 @@ class LegalTemplateSerializer(serializers.ModelSerializer):
     dueMonth = serializers.DateField(source='due_month', required=False)
     responsibleEmails = serializers.CharField(source='responsible_emails', required=False)
     noticePeriod = serializers.IntegerField(source='notice_period', required=False)
-    building_id = serializers.IntegerField(required=False)
+    building_id = serializers.PrimaryKeyRelatedField(
+        source='building',
+        queryset=Building.objects.all(),
+        required=False,
+        allow_null=True
+    )
 
     class Meta:
         model = LegalTemplate
