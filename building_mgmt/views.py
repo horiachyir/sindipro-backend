@@ -49,6 +49,31 @@ def create_building(request):
         'details': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_building(request, id):
+    try:
+        building = Building.objects.get(id=id, created_by=request.user)
+    except Building.DoesNotExist:
+        return Response({
+            'error': 'Building not found or access denied'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = BuildingSerializer(building, data=request.data)
+
+    if serializer.is_valid():
+        updated_building = serializer.save()
+        return Response({
+            'message': 'Building updated successfully',
+            'building_id': updated_building.id,
+            'building_name': updated_building.building_name
+        }, status=status.HTTP_200_OK)
+
+    return Response({
+        'error': 'Invalid data',
+        'details': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_all_buildings(request):

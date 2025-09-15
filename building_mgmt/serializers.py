@@ -139,6 +139,63 @@ class BuildingSerializer(serializers.ModelSerializer):
         
         return building
 
+    def update(self, instance, validated_data):
+        # Extract nested data
+        address_data = validated_data.pop('address', None)
+        alternative_address_data = validated_data.pop('alternative_address', None)
+        tower_names = validated_data.pop('tower_names', None)
+        units_per_tower_array = validated_data.pop('units_per_tower_array', None)
+        tower_unit_distribution = validated_data.pop('tower_unit_distribution', [])
+
+        # Update building fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # Update primary address
+        if address_data:
+            for attr, value in address_data.items():
+                setattr(instance.address, attr, value)
+            instance.address.save()
+
+        # Update alternative address
+        if alternative_address_data:
+            if instance.alternative_address:
+                for attr, value in alternative_address_data.items():
+                    setattr(instance.alternative_address, attr, value)
+                instance.alternative_address.save()
+            else:
+                # Create new alternative address if it doesn't exist
+                alternative_address = Address.objects.create(**alternative_address_data)
+                instance.alternative_address = alternative_address
+        elif validated_data.get('use_separate_address') == False and instance.alternative_address:
+            # Delete alternative address if use_separate_address is set to False
+            instance.alternative_address.delete()
+            instance.alternative_address = None
+
+        instance.save()
+
+        # Update towers if provided
+        if tower_names is not None and units_per_tower_array is not None:
+            # Delete existing towers (this will cascade delete unit distributions)
+            instance.towers.all().delete()
+
+            # Create new towers
+            for i, tower_name in enumerate(tower_names):
+                tower_data = {
+                    'building': instance,
+                    'name': tower_name,
+                    'units_per_tower': units_per_tower_array[i]
+                }
+                tower = Tower.objects.create(**tower_data)
+
+                # Create unit distribution for mixed buildings
+                if instance.building_type == 'mixed' and i < len(tower_unit_distribution):
+                    distribution_data = tower_unit_distribution[i]
+                    distribution_data['tower'] = tower
+                    TowerUnitDistribution.objects.create(**distribution_data)
+
+        return instance
+
     def validate(self, data):
         building_type = data.get('building_type')
         
