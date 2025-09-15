@@ -19,27 +19,31 @@ class LegalObligationSerializer(serializers.ModelSerializer):
 class LegalTemplateSerializer(serializers.ModelSerializer):
     buildingType = serializers.CharField(source='building_type', required=False)
     requiresQuote = serializers.BooleanField(source='requires_quote')
-    dueMonth = serializers.CharField(source='due_month', required=False)
+    dueMonth = serializers.DateField(source='due_month', required=False)
     responsibleEmails = serializers.CharField(source='responsible_emails', required=False)
-    
+    noticePeriod = serializers.IntegerField(source='notice_period', required=False)
+    building_id = serializers.IntegerField(required=False)
+
     class Meta:
         model = LegalTemplate
         fields = [
             'id',
             'name',
             'description',
+            'building_id',
             'buildingType',
             'frequency',
             'conditions',
             'requiresQuote',
             'active',
             'dueMonth',
+            'noticePeriod',
             'responsibleEmails',
             'created_at',
             'updated_at'
         ]
         read_only_fields = ('id', 'created_by', 'created_at', 'updated_at')
-    
+
     def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
