@@ -93,15 +93,6 @@ class LegalObligation(models.Model):
 
 
 class LegalTemplate(models.Model):
-    FREQUENCY_CHOICES = [
-        ('one_time', 'One Time'),
-        ('annual', 'Annual'),
-        ('biannual', 'Biannual'),
-        ('monthly', 'Monthly'),
-        ('quarterly', 'Quarterly'),
-        ('semi_annual', 'Semi-Annual'),
-    ]
-
     BUILDING_TYPE_CHOICES = [
         ('residential', 'Residential'),
         ('commercial', 'Commercial'),
@@ -113,7 +104,7 @@ class LegalTemplate(models.Model):
     description = models.TextField()
     building = models.ForeignKey(Building, on_delete=models.CASCADE, null=True, blank=True)
     building_type = models.CharField(max_length=20, choices=BUILDING_TYPE_CHOICES, null=True, blank=True)
-    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default='annual')
+    frequency = models.CharField(max_length=50, default='annual')
     conditions = models.TextField(blank=True)
     requires_quote = models.BooleanField(default=False)
     active = models.BooleanField(default=True)
