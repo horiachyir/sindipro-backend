@@ -151,7 +151,7 @@ def create_unit(request, id):
         'details': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['PUT'])
+@api_view(['PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def update_unit(request, id):
     try:
@@ -161,16 +161,29 @@ def update_unit(request, id):
             'error': 'Unit not found or access denied'
         }, status=status.HTTP_404_NOT_FOUND)
 
-    serializer = UnitSerializer(unit, data=request.data)
+    if request.method == 'DELETE':
+        # Store unit info for response message
+        unit_number = unit.number
+        building_name = unit.building.building_name
 
-    if serializer.is_valid():
-        updated_unit = serializer.save()
+        # Delete the unit from building_mgmt_unit table
+        unit.delete()
+
         return Response({
-            'message': 'Unit updated successfully',
-            'unit': UnitDetailSerializer(updated_unit).data
+            'message': f'Unit {unit_number} from building "{building_name}" has been successfully deleted'
         }, status=status.HTTP_200_OK)
 
-    return Response({
-        'error': 'Invalid data',
-        'details': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == 'PUT':
+        serializer = UnitSerializer(unit, data=request.data)
+
+        if serializer.is_valid():
+            updated_unit = serializer.save()
+            return Response({
+                'message': 'Unit updated successfully',
+                'unit': UnitDetailSerializer(updated_unit).data
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            'error': 'Invalid data',
+            'details': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
