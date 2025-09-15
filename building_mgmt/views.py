@@ -63,7 +63,14 @@ def update_building(request, id):
         # Store building name for response message
         building_name = building.building_name
 
-        # Delete the building (this will cascade delete all related records)
+        # Explicitly delete address records from building_mgmt_address table
+        if building.address:
+            building.address.delete()
+
+        if building.alternative_address:
+            building.alternative_address.delete()
+
+        # Delete the building (this will cascade delete all related records including towers)
         building.delete()
 
         return Response({
