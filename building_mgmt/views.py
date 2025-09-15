@@ -49,7 +49,7 @@ def create_building(request):
         'details': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['PUT'])
+@api_view(['PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def update_building(request, id):
     try:
@@ -59,20 +59,32 @@ def update_building(request, id):
             'error': 'Building not found or access denied'
         }, status=status.HTTP_404_NOT_FOUND)
 
-    serializer = BuildingSerializer(building, data=request.data)
+    if request.method == 'DELETE':
+        # Store building name for response message
+        building_name = building.building_name
 
-    if serializer.is_valid():
-        updated_building = serializer.save()
+        # Delete the building (this will cascade delete all related records)
+        building.delete()
+
         return Response({
-            'message': 'Building updated successfully',
-            'building_id': updated_building.id,
-            'building_name': updated_building.building_name
+            'message': f'Building "{building_name}" and all associated data have been successfully deleted'
         }, status=status.HTTP_200_OK)
 
-    return Response({
-        'error': 'Invalid data',
-        'details': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == 'PUT':
+        serializer = BuildingSerializer(building, data=request.data)
+
+        if serializer.is_valid():
+            updated_building = serializer.save()
+            return Response({
+                'message': 'Building updated successfully',
+                'building_id': updated_building.id,
+                'building_name': updated_building.building_name
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            'error': 'Invalid data',
+            'details': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
