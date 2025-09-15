@@ -92,6 +92,7 @@ class Unit(models.Model):
     ]
     
     building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='units')
+    tower = models.ForeignKey(Tower, on_delete=models.CASCADE, related_name='units', null=True, blank=True)
     number = models.CharField(max_length=20)
     floor = models.PositiveIntegerField()
     area = models.DecimalField(max_digits=8, decimal_places=2)

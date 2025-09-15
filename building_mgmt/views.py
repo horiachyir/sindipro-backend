@@ -14,10 +14,10 @@ def get_buildings(request):
         buildings = Building.objects.filter(created_by=request.user).prefetch_related('address', 'alternative_address', 'towers__unit_distribution')
         serializer = BuildingReadSerializer(buildings, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     elif request.method == 'POST':
         serializer = BuildingSerializer(data=request.data)
-        
+
         if serializer.is_valid():
             building = serializer.save(created_by=request.user)
             return Response({
@@ -25,7 +25,7 @@ def get_buildings(request):
                 'building_id': building.id,
                 'building_name': building.building_name
             }, status=status.HTTP_201_CREATED)
-        
+
         return Response({
             'error': 'Invalid data',
             'details': serializer.errors
@@ -35,7 +35,7 @@ def get_buildings(request):
 @permission_classes([IsAuthenticated])
 def create_building(request):
     serializer = BuildingSerializer(data=request.data)
-    
+
     if serializer.is_valid():
         building = serializer.save(created_by=request.user)
         return Response({
@@ -43,7 +43,7 @@ def create_building(request):
             'building_id': building.id,
             'building_name': building.building_name
         }, status=status.HTTP_201_CREATED)
-    
+
     return Response({
         'error': 'Invalid data',
         'details': serializer.errors
@@ -110,7 +110,7 @@ def get_units(request):
     units = Unit.objects.filter(
         building__created_by=request.user
     ).select_related('building').order_by('building__building_name', 'number')
-    
+
     serializer = UnitDetailSerializer(units, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -120,7 +120,7 @@ def create_unit(request, id):
     print(f"DEBUG: Received request for building_id: {id}")
     print(f"DEBUG: User: {request.user}")
     print(f"DEBUG: Request data: {request.data}")
-    
+
     # Verify the building exists and belongs to the user
     try:
         building = Building.objects.get(id=id, created_by=request.user)
@@ -130,14 +130,14 @@ def create_unit(request, id):
         return Response({
             'error': 'Building not found or access denied'
         }, status=status.HTTP_404_NOT_FOUND)
-    
+
     # Remove building_id from request data if present (since it comes from URL)
     data = request.data.copy()
     if 'building_id' in data:
         data.pop('building_id')
-    
+
     serializer = UnitSerializer(data=data)
-    
+
     if serializer.is_valid():
         # Set the building from the URL parameter
         unit = serializer.save(building=building)
@@ -145,7 +145,31 @@ def create_unit(request, id):
             'message': 'Unit created successfully',
             'unit': UnitSerializer(unit).data
         }, status=status.HTTP_201_CREATED)
-    
+
+    return Response({
+        'error': 'Invalid data',
+        'details': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_unit(request, id):
+    try:
+        unit = Unit.objects.get(id=id, building__created_by=request.user)
+    except Unit.DoesNotExist:
+        return Response({
+            'error': 'Unit not found or access denied'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = UnitSerializer(unit, data=request.data)
+
+    if serializer.is_valid():
+        updated_unit = serializer.save()
+        return Response({
+            'message': 'Unit updated successfully',
+            'unit': UnitDetailSerializer(updated_unit).data
+        }, status=status.HTTP_200_OK)
+
     return Response({
         'error': 'Invalid data',
         'details': serializer.errors

@@ -21,27 +21,48 @@ class TowerSerializer(serializers.ModelSerializer):
 class UnitSerializer(serializers.ModelSerializer):
     building_name = serializers.CharField(source='building.building_name', read_only=True)
     building_id = serializers.IntegerField(read_only=True, source='building.id')
-    
+    tower_id = serializers.IntegerField(source='tower.id', required=False, allow_null=True)
+
     class Meta:
         model = Unit
         fields = [
             'id', 'area', 'building_id', 'building_name', 'deposit_location',
             'floor', 'has_deposit', 'ideal_fraction', 'identification',
             'key_delivery', 'number', 'owner', 'owner_phone',
-            'parking_spaces', 'status'
+            'parking_spaces', 'status', 'tower_id'
         ]
+
+    def update(self, instance, validated_data):
+        # Handle tower_id from the data
+        tower_data = validated_data.pop('tower', None)
+        if tower_data and 'id' in tower_data:
+            try:
+                tower = Tower.objects.get(id=tower_data['id'])
+                instance.tower = tower
+                # Ensure the building matches the tower's building
+                instance.building = tower.building
+            except Tower.DoesNotExist:
+                raise serializers.ValidationError("Invalid tower_id provided")
+
+        # Update other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
 class UnitDetailSerializer(serializers.ModelSerializer):
     building_name = serializers.CharField(source='building.building_name', read_only=True)
     building_id = serializers.IntegerField(source='building.id', read_only=True)
-    
+    tower_id = serializers.IntegerField(source='tower.id', read_only=True, allow_null=True)
+
     class Meta:
         model = Unit
         fields = [
             'id', 'area', 'building_id', 'building_name',
-            'deposit_location', 'floor', 'has_deposit', 'ideal_fraction', 
+            'deposit_location', 'floor', 'has_deposit', 'ideal_fraction',
             'identification', 'key_delivery', 'number', 'owner', 'owner_phone',
-            'parking_spaces', 'status', 'created_at', 'updated_at'
+            'parking_spaces', 'status', 'tower_id', 'created_at', 'updated_at'
         ]
 
 class BuildingSerializer(serializers.ModelSerializer):
