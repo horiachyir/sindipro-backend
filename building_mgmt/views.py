@@ -53,11 +53,11 @@ def create_building(request):
 @permission_classes([AllowAny])
 def get_all_buildings(request):
     """
-    Get all buildings with id, building_name, and address fields.
+    Get all buildings with all fields from building_mgmt_building, building_mgmt_address, and building_mgmt_tower tables.
     Accessible without authentication for frontend signup process.
     """
-    buildings = Building.objects.all().select_related('address', 'alternative_address')
-    serializer = BuildingBasicSerializer(buildings, many=True)
+    buildings = Building.objects.all().select_related('address', 'alternative_address').prefetch_related('towers__unit_distribution')
+    serializer = BuildingReadSerializer(buildings, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
