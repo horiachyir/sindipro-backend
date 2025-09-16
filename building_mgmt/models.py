@@ -99,7 +99,7 @@ class Unit(models.Model):
     ideal_fraction = models.DecimalField(max_digits=10, decimal_places=6)
     identification = models.CharField(max_length=20)
     deposit_location = models.CharField(max_length=200, blank=True)
-    has_deposit = models.CharField(max_length=3)
+    has_deposit = models.CharField(max_length=3, null=True, blank=True)
     key_delivery = models.CharField(max_length=3)
     owner = models.CharField(max_length=200)
     owner_phone = models.CharField(max_length=20)
