@@ -197,7 +197,6 @@ class Command(BaseCommand):
                                 ideal_fraction=random.uniform(0.5, 2.5),
                                 identification=identification,
                                 deposit_location=f'Depósito {unit_number}' if random.choice([True, False]) else '',
-                                has_deposit=random.choice(['Sim', 'Não']),
                                 key_delivery=random.choice(['Sim', 'Não']),
                                 owner=f'Proprietário {unit_number}',
                                 owner_phone=f'(11) 9{random.randint(1000, 9999)}-{random.randint(1000, 9999)}',

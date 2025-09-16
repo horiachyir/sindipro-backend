@@ -27,7 +27,7 @@ class UnitSerializer(serializers.ModelSerializer):
         model = Unit
         fields = [
             'id', 'area', 'building_id', 'building_name', 'deposit_location',
-            'floor', 'has_deposit', 'ideal_fraction', 'identification',
+            'floor', 'ideal_fraction', 'identification',
             'key_delivery', 'number', 'owner', 'owner_phone',
             'parking_spaces', 'status', 'tower_id'
         ]
@@ -83,7 +83,7 @@ class UnitDetailSerializer(serializers.ModelSerializer):
         model = Unit
         fields = [
             'id', 'area', 'building_id', 'building_name',
-            'deposit_location', 'floor', 'has_deposit', 'ideal_fraction',
+            'deposit_location', 'floor', 'ideal_fraction',
             'identification', 'key_delivery', 'number', 'owner', 'owner_phone',
             'parking_spaces', 'status', 'tower_id', 'created_at', 'updated_at'
         ]
