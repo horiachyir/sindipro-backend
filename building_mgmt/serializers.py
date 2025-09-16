@@ -32,6 +32,29 @@ class UnitSerializer(serializers.ModelSerializer):
             'parking_spaces', 'status', 'tower_id'
         ]
 
+    def create(self, validated_data):
+        # Handle tower_id from the data
+        tower_data = validated_data.pop('tower', None)
+        tower = None
+
+        if tower_data and 'id' in tower_data:
+            try:
+                tower = Tower.objects.get(id=tower_data['id'])
+                # Ensure the building matches the tower's building
+                validated_data['building'] = tower.building
+            except Tower.DoesNotExist:
+                raise serializers.ValidationError("Invalid tower_id provided")
+
+        # Create the unit
+        unit = Unit.objects.create(**validated_data)
+
+        # Set the tower if provided
+        if tower:
+            unit.tower = tower
+            unit.save()
+
+        return unit
+
     def update(self, instance, validated_data):
         # Handle tower_id from the data
         tower_data = validated_data.pop('tower', None)
