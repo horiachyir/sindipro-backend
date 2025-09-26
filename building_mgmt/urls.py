@@ -8,6 +8,7 @@ urlpatterns = [
     path('<int:id>/', views.update_building, name='update_building'),
     path('<int:id>/units/', views.create_unit, name='create_unit'),
     path('<int:id>/units/export/excel/', views.export_units_excel, name='export_units_excel'),
+    path('<int:id>/units/import/excel/', views.import_units_excel, name='import_units_excel'),
     path('units/', views.get_units, name='get_units'),
     path('units/<int:id>/', views.update_unit, name='update_unit'),
 ]
