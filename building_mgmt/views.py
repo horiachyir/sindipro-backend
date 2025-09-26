@@ -1,11 +1,15 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Building, Tower, Unit
 from .serializers import BuildingSerializer, BuildingReadSerializer, UnitSerializer, UnitDetailSerializer, BuildingBasicSerializer
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+import io
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -187,3 +191,154 @@ def update_unit(request, id):
             'error': 'Invalid data',
             'details': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def export_units_excel(request, id):
+    try:
+        building = Building.objects.get(id=id, created_by=request.user)
+    except Building.DoesNotExist:
+        return Response({
+            'error': 'Building not found or access denied'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    # Get all units for this building with related data
+    units = Unit.objects.filter(building=building).select_related(
+        'building', 'tower'
+    ).order_by('tower__name', 'floor', 'number')
+
+    # Create workbook and worksheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"{building.building_name} - Units Report"
+
+    # Define styles
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin")
+    )
+
+    # Title and building information
+    ws.merge_cells('A1:L1')
+    title_cell = ws['A1']
+    title_cell.value = f"Building Units Report - {building.building_name}"
+    title_cell.font = Font(bold=True, size=16)
+    title_cell.alignment = Alignment(horizontal="center")
+
+    ws.merge_cells('A2:L2')
+    building_info = ws['A2']
+    address = building.address
+    address_str = f"{address.street}, {address.number}, {address.neighborhood}, {address.city}/{address.state}"
+    building_info.value = f"Address: {address_str} | CNPJ: {building.cnpj} | Manager: {building.manager_name}"
+    building_info.alignment = Alignment(horizontal="center")
+
+    # Headers
+    headers = [
+        'Unit Number', 'Tower', 'Floor', 'Identification', 'Area (m²)',
+        'Ideal Fraction', 'Status', 'Owner', 'Owner Phone', 'Parking Spaces',
+        'Key Delivery', 'Deposit Location'
+    ]
+
+    # Write headers
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col)
+        cell.value = header
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = border
+
+    # Write unit data
+    row = 5
+    for unit in units:
+        # Display names instead of IDs
+        tower_name = unit.tower.name if unit.tower else "N/A"
+
+        # Map status values to readable text
+        status_display = dict(Unit.STATUS_CHOICES).get(unit.status, unit.status)
+
+        # Map identification values to readable text
+        identification_display = dict(Unit.IDENTIFICATION_CHOICES).get(unit.identification, unit.identification)
+
+        data = [
+            unit.number,
+            tower_name,
+            unit.floor,
+            identification_display,
+            float(unit.area),
+            float(unit.ideal_fraction),
+            status_display,
+            unit.owner,
+            unit.owner_phone,
+            unit.parking_spaces,
+            unit.key_delivery,
+            unit.deposit_location or "N/A"
+        ]
+
+        for col, value in enumerate(data, 1):
+            cell = ws.cell(row=row, column=col)
+            cell.value = value
+            cell.border = border
+            # Center alignment for numeric and status fields
+            if col in [3, 4, 5, 6, 7, 10]:  # Floor, identification, area, fraction, status, parking
+                cell.alignment = Alignment(horizontal="center")
+
+        row += 1
+
+    # Auto-adjust column widths
+    for col in range(1, len(headers) + 1):
+        column_letter = get_column_letter(col)
+        max_length = 0
+
+        # Check header length
+        max_length = max(max_length, len(str(headers[col-1])))
+
+        # Check data lengths
+        for row_num in range(5, row):
+            cell_value = ws.cell(row=row_num, column=col).value
+            if cell_value:
+                max_length = max(max_length, len(str(cell_value)))
+
+        # Set column width with some padding
+        adjusted_width = min(max_length + 2, 50)  # Max width of 50
+        ws.column_dimensions[column_letter].width = adjusted_width
+
+    # Add summary information
+    summary_row = row + 2
+    ws.merge_cells(f'A{summary_row}:D{summary_row}')
+    summary_cell = ws[f'A{summary_row}']
+    summary_cell.value = f"Total Units: {units.count()}"
+    summary_cell.font = Font(bold=True)
+
+    # Status summary
+    status_counts = {}
+    for unit in units:
+        status_display = dict(Unit.STATUS_CHOICES).get(unit.status, unit.status)
+        status_counts[status_display] = status_counts.get(status_display, 0) + 1
+
+    summary_row += 1
+    for status_name, count in status_counts.items():
+        ws.merge_cells(f'A{summary_row}:D{summary_row}')
+        status_cell = ws[f'A{summary_row}']
+        status_cell.value = f"{status_name}: {count} units"
+        summary_row += 1
+
+    # Create HTTP response
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+    filename = f"{building.building_name.replace(' ', '_')}_units_report.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    return response
