@@ -601,8 +601,40 @@ def import_units_excel(request, id):
 
         # Add unit data for frontend
         if created_units:
-            serializer = UnitDetailSerializer(created_units, many=True)
-            response_data['units'] = serializer.data
+            try:
+                serializer = UnitDetailSerializer(created_units, many=True)
+                response_data['units'] = serializer.data
+            except Exception as serializer_error:
+                # Log serializer error but don't fail the entire request
+                response_data['serializer_warning'] = f'Error serializing units: {str(serializer_error)}'
+                # Return basic unit info as fallback
+                response_data['units'] = []
+                for unit in created_units:
+                    try:
+                        unit_data = {
+                            'id': unit.id,
+                            'number': unit.number,
+                            'building_name': unit.building.building_name,
+                            'building_id': unit.building.id,
+                            'tower_id': unit.tower.id if unit.tower else None,
+                            'tower_name': unit.tower.name if unit.tower else None,
+                            'status': unit.status,
+                            'area': float(unit.area),
+                            'ideal_fraction': float(unit.ideal_fraction),
+                            'floor': unit.floor,
+                            'identification': unit.identification,
+                            'owner': unit.owner,
+                            'owner_phone': unit.owner_phone,
+                            'parking_spaces': unit.parking_spaces,
+                            'key_delivery': unit.key_delivery,
+                            'deposit_location': unit.deposit_location
+                        }
+                        response_data['units'].append(unit_data)
+                    except Exception as unit_error:
+                        # Skip problematic units but log the issue
+                        if 'unit_errors' not in response_data:
+                            response_data['unit_errors'] = []
+                        response_data['unit_errors'].append(f'Error serializing unit {unit.number}: {str(unit_error)}')
 
         status_code = status.HTTP_201_CREATED if created_units else status.HTTP_400_BAD_REQUEST
         return Response(response_data, status=status_code)

@@ -21,7 +21,7 @@ class TowerSerializer(serializers.ModelSerializer):
 class UnitSerializer(serializers.ModelSerializer):
     building_name = serializers.CharField(source='building.building_name', read_only=True)
     building_id = serializers.IntegerField(read_only=True, source='building.id')
-    tower_id = serializers.IntegerField(source='tower.id', required=False, allow_null=True)
+    tower_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Unit
@@ -74,10 +74,13 @@ class UnitSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def get_tower_id(self, obj):
+        return obj.tower.id if obj.tower else None
+
 class UnitDetailSerializer(serializers.ModelSerializer):
     building_name = serializers.CharField(source='building.building_name', read_only=True)
     building_id = serializers.IntegerField(source='building.id', read_only=True)
-    tower_id = serializers.IntegerField(source='tower.id', read_only=True, allow_null=True)
+    tower_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Unit
@@ -87,6 +90,9 @@ class UnitDetailSerializer(serializers.ModelSerializer):
             'identification', 'key_delivery', 'number', 'owner', 'owner_phone',
             'parking_spaces', 'status', 'tower_id', 'created_at', 'updated_at'
         ]
+
+    def get_tower_id(self, obj):
+        return obj.tower.id if obj.tower else None
 
 class BuildingSerializer(serializers.ModelSerializer):
     address = AddressSerializer()
