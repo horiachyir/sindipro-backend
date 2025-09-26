@@ -11,4 +11,5 @@ urlpatterns = [
     path('<int:id>/units/import/excel/', views.import_units_excel, name='import_units_excel'),
     path('units/', views.get_units, name='get_units'),
     path('units/<int:id>/', views.update_unit, name='update_unit'),
+    path('units/debug/<int:id>/', views.debug_unit, name='debug_unit'),
 ]

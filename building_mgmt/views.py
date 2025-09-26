@@ -159,12 +159,34 @@ def create_unit(request, id):
 @api_view(['PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def update_unit(request, id):
+    # Add debug information
+    print(f"DEBUG: update_unit called with ID: {id}")
+    print(f"DEBUG: Request method: {request.method}")
+    print(f"DEBUG: User: {request.user}")
+
     try:
-        unit = Unit.objects.get(id=id, building__created_by=request.user)
+        # First check if unit exists at all
+        unit = Unit.objects.get(id=id)
+        print(f"DEBUG: Found unit: {unit.number} in building: {unit.building.building_name}")
+        print(f"DEBUG: Building created by: {unit.building.created_by}")
     except Unit.DoesNotExist:
+        print(f"DEBUG: Unit with ID {id} not found in database")
         return Response({
-            'error': 'Unit not found or access denied'
+            'error': f'Unit with ID {id} not found'
         }, status=status.HTTP_404_NOT_FOUND)
+
+    # Then check if user has access to this unit's building
+    if unit.building.created_by != request.user:
+        print(f"DEBUG: Access denied. Building owner: {unit.building.created_by}, Request user: {request.user}")
+        return Response({
+            'error': 'Access denied. You can only modify units in buildings you created.',
+            'debug_info': {
+                'building_owner': str(unit.building.created_by),
+                'request_user': str(request.user),
+                'unit_id': id,
+                'building_name': unit.building.building_name
+            }
+        }, status=status.HTTP_403_FORBIDDEN)
 
     if request.method == 'DELETE':
         # Store unit info for response message
@@ -643,4 +665,50 @@ def import_units_excel(request, id):
         return Response({
             'error': f'Unexpected error processing Excel file: {str(e)}',
             'type': type(e).__name__
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def debug_unit(request, id):
+    """Debug endpoint to check unit existence and access rights."""
+    try:
+        # Check if unit exists
+        unit = Unit.objects.get(id=id)
+
+        # Get building info
+        building = unit.building
+
+        return Response({
+            'unit_found': True,
+            'unit_id': unit.id,
+            'unit_number': unit.number,
+            'building_id': building.id,
+            'building_name': building.building_name,
+            'building_created_by': str(building.created_by),
+            'building_created_by_id': building.created_by.id,
+            'request_user': str(request.user),
+            'request_user_id': request.user.id,
+            'has_access': building.created_by == request.user,
+            'unit_details': {
+                'floor': unit.floor,
+                'area': float(unit.area),
+                'status': unit.status,
+                'owner': unit.owner,
+                'tower': unit.tower.name if unit.tower else None
+            }
+        }, status=status.HTTP_200_OK)
+
+    except Unit.DoesNotExist:
+        return Response({
+            'unit_found': False,
+            'unit_id': id,
+            'error': f'Unit with ID {id} does not exist',
+            'request_user': str(request.user),
+            'request_user_id': request.user.id
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'error': f'Unexpected error: {str(e)}',
+            'unit_id': id,
+            'request_user': str(request.user)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
