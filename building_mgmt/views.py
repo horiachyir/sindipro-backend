@@ -370,12 +370,28 @@ def export_units_excel(request, id):
 @permission_classes([IsAuthenticated])
 def import_units_excel(request, id):
     try:
+        # Add comprehensive logging at the very start
+        print(f"DEBUG: Excel import started - Building ID: {id}, User: {request.user}")
+        print(f"DEBUG: Request method: {request.method}")
+        print(f"DEBUG: Request FILES keys: {list(request.FILES.keys())}")
+        print(f"DEBUG: Request DATA keys: {list(request.data.keys())}")
+    except Exception as debug_error:
+        print(f"DEBUG: Error in initial logging: {str(debug_error)}")
+        return Response({
+            'error': f'Error in initial request processing: {str(debug_error)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    try:
+        print(f"DEBUG: Attempting to find building with ID {id}")
         building = Building.objects.get(id=id, created_by=request.user)
+        print(f"DEBUG: Found building: {building.building_name}")
     except Building.DoesNotExist:
+        print(f"DEBUG: Building {id} not found or access denied for user {request.user}")
         return Response({
             'error': 'Building not found or access denied'
         }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
+        print(f"DEBUG: Database error while finding building: {str(e)}")
         return Response({
             'error': f'Database error: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -662,9 +678,16 @@ def import_units_excel(request, id):
         return Response(response_data, status=status_code)
 
     except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"CRITICAL ERROR in Excel import: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Full traceback: {error_traceback}")
+
         return Response({
             'error': f'Unexpected error processing Excel file: {str(e)}',
-            'type': type(e).__name__
+            'type': type(e).__name__,
+            'traceback': error_traceback if request.user.is_superuser else None
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
@@ -711,4 +734,63 @@ def debug_unit(request, id):
             'error': f'Unexpected error: {str(e)}',
             'unit_id': id,
             'request_user': str(request.user)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def test_import_endpoint(request, id):
+    """Simple test endpoint to verify POST requests work for this building."""
+    try:
+        print(f"TEST DEBUG: Building ID: {id}, User: {request.user}")
+        print(f"TEST DEBUG: Request method: {request.method}")
+        print(f"TEST DEBUG: Request FILES: {list(request.FILES.keys())}")
+        print(f"TEST DEBUG: Request DATA: {list(request.data.keys())}")
+
+        # Check building exists
+        building = Building.objects.get(id=id, created_by=request.user)
+
+        return Response({
+            'success': True,
+            'message': f'Test endpoint working for building {building.building_name}',
+            'building_id': building.id,
+            'user': str(request.user),
+            'files_received': list(request.FILES.keys()),
+            'data_received': list(request.data.keys())
+        }, status=status.HTTP_200_OK)
+
+    except Building.DoesNotExist:
+        return Response({
+            'error': 'Building not found or access denied',
+            'building_id': id,
+            'user': str(request.user)
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    except Exception as e:
+        import traceback
+        return Response({
+            'error': f'Test endpoint error: {str(e)}',
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc()
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def simple_import_test(request, id):
+    """Minimal import test to isolate the issue."""
+    try:
+        print(f"SIMPLE TEST: Starting import test for building {id}")
+
+        # Just return success with basic info
+        return Response({
+            'success': True,
+            'message': 'Simple import test successful',
+            'building_id': id,
+            'method': request.method,
+            'user': str(request.user)
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"SIMPLE TEST ERROR: {str(e)}")
+        return Response({
+            'error': f'Simple test failed: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -12,4 +12,6 @@ urlpatterns = [
     path('units/', views.get_units, name='get_units'),
     path('units/<int:id>/', views.update_unit, name='update_unit'),
     path('units/debug/<int:id>/', views.debug_unit, name='debug_unit'),
+    path('<int:id>/units/test-import/', views.test_import_endpoint, name='test_import_endpoint'),
+    path('<int:id>/units/import-simple/', views.simple_import_test, name='simple_import_test'),
 ]
