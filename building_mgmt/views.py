@@ -524,7 +524,7 @@ def import_units_excel(request, id):
                     deposit_location = str(row_data[11]).strip() if row_data[11] is not None else ''
 
                     # Map display values back to database values
-                    status = status_map.get(status_display, 'vacant')
+                    unit_status = status_map.get(status_display, 'vacant')
                     identification = identification_map.get(identification_display, 'residential')
 
                     # Find tower by name
@@ -564,7 +564,7 @@ def import_units_excel(request, id):
                         'owner': owner,
                         'owner_phone': owner_phone,
                         'parking_spaces': parking_spaces,
-                        'status': status,
+                        'status': unit_status,
                     }
 
                     units_data.append(unit_data)
