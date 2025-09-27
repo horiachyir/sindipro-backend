@@ -12,11 +12,45 @@ from openpyxl.utils import get_column_letter
 import openpyxl
 import io
 
+def user_can_access_building(user, building_id):
+    """
+    Check if user can access a specific building.
+    Master role users can access all buildings.
+    Other users can only access buildings they created.
+    """
+    if user.role == 'master':
+        return True
+
+    try:
+        Building.objects.get(id=building_id, created_by=user)
+        return True
+    except Building.DoesNotExist:
+        return False
+
+def get_accessible_building(user, building_id):
+    """
+    Get building if user has access, raise appropriate exception if not.
+    """
+    if user.role == 'master':
+        try:
+            return Building.objects.get(id=building_id)
+        except Building.DoesNotExist:
+            return None
+    else:
+        try:
+            return Building.objects.get(id=building_id, created_by=user)
+        except Building.DoesNotExist:
+            return None
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def get_buildings(request):
     if request.method == 'GET':
-        buildings = Building.objects.filter(created_by=request.user).prefetch_related('address', 'alternative_address', 'towers__unit_distribution')
+        # Master role users can see all buildings, others only see buildings they created
+        if request.user.role == 'master':
+            buildings = Building.objects.all().prefetch_related('address', 'alternative_address', 'towers__unit_distribution')
+        else:
+            buildings = Building.objects.filter(created_by=request.user).prefetch_related('address', 'alternative_address', 'towers__unit_distribution')
         serializer = BuildingReadSerializer(buildings, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -57,9 +91,9 @@ def create_building(request):
 @api_view(['PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def update_building(request, id):
-    try:
-        building = Building.objects.get(id=id, created_by=request.user)
-    except Building.DoesNotExist:
+    # Check if user has access to building (master role can access all buildings)
+    building = get_accessible_building(request.user, id)
+    if not building:
         return Response({
             'error': 'Building not found or access denied'
         }, status=status.HTTP_404_NOT_FOUND)
@@ -112,9 +146,13 @@ def get_all_buildings(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_units(request):
-    units = Unit.objects.filter(
-        building__created_by=request.user
-    ).select_related('building').order_by('building__building_name', 'number')
+    # Master role users can see all units, others only see units from their buildings
+    if request.user.role == 'master':
+        units = Unit.objects.all().select_related('building').order_by('building__building_name', 'number')
+    else:
+        units = Unit.objects.filter(
+            building__created_by=request.user
+        ).select_related('building').order_by('building__building_name', 'number')
 
     serializer = UnitDetailSerializer(units, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -126,15 +164,15 @@ def create_unit(request, id):
     print(f"DEBUG: User: {request.user}")
     print(f"DEBUG: Request data: {request.data}")
 
-    # Verify the building exists and belongs to the user
-    try:
-        building = Building.objects.get(id=id, created_by=request.user)
-        print(f"DEBUG: Found building: {building}")
-    except Building.DoesNotExist:
+    # Verify the building exists and user has access (master role can access all buildings)
+    building = get_accessible_building(request.user, id)
+    if not building:
         print(f"DEBUG: Building {id} not found or access denied for user {request.user}")
         return Response({
             'error': 'Building not found or access denied'
         }, status=status.HTTP_404_NOT_FOUND)
+
+    print(f"DEBUG: Found building: {building}")
 
     # Remove building_id from request data if present (since it comes from URL)
     data = request.data.copy()
@@ -175,8 +213,8 @@ def update_unit(request, id):
             'error': f'Unit with ID {id} not found'
         }, status=status.HTTP_404_NOT_FOUND)
 
-    # Then check if user has access to this unit's building
-    if unit.building.created_by != request.user:
+    # Then check if user has access to this unit's building (master role can access all buildings)
+    if not user_can_access_building(request.user, unit.building.id):
         print(f"DEBUG: Access denied. Building owner: {unit.building.created_by}, Request user: {request.user}")
         return Response({
             'error': 'Access denied. You can only modify units in buildings you created.',
@@ -218,9 +256,9 @@ def update_unit(request, id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def export_units_excel(request, id):
-    try:
-        building = Building.objects.get(id=id, created_by=request.user)
-    except Building.DoesNotExist:
+    # Check if user has access to building (master role can access all buildings)
+    building = get_accessible_building(request.user, id)
+    if not building:
         return Response({
             'error': 'Building not found or access denied'
         }, status=status.HTTP_404_NOT_FOUND)
@@ -383,13 +421,14 @@ def import_units_excel(request, id):
 
     try:
         print(f"DEBUG: Attempting to find building with ID {id}")
-        building = Building.objects.get(id=id, created_by=request.user)
+        # Check if user has access to building (master role can access all buildings)
+        building = get_accessible_building(request.user, id)
+        if not building:
+            print(f"DEBUG: Building {id} not found or access denied for user {request.user}")
+            return Response({
+                'error': 'Building not found or access denied'
+            }, status=status.HTTP_404_NOT_FOUND)
         print(f"DEBUG: Found building: {building.building_name}")
-    except Building.DoesNotExist:
-        print(f"DEBUG: Building {id} not found or access denied for user {request.user}")
-        return Response({
-            'error': 'Building not found or access denied'
-        }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         print(f"DEBUG: Database error while finding building: {str(e)}")
         return Response({
