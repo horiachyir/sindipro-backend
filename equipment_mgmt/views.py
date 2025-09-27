@@ -8,31 +8,29 @@ from .models import Equipment, MaintenanceRecord, EquipmentDocument
 from .serializers import EquipmentSerializer, MaintenanceRecordSerializer, EquipmentDocumentSerializer
 
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def create_equipment(request):
-    serializer = EquipmentSerializer(data=request.data, context={'request': request})
-    
-    if serializer.is_valid():
-        equipment = serializer.save()
+def equipment_list_create(request):
+    if request.method == 'GET':
+        equipment = Equipment.objects.filter(created_by=request.user)
+        serializer = EquipmentSerializer(equipment, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    elif request.method == 'POST':
+        serializer = EquipmentSerializer(data=request.data, context={'request': request})
+
+        if serializer.is_valid():
+            equipment = serializer.save()
+            return Response({
+                'message': 'Equipment created successfully',
+                'equipment_id': equipment.id,
+                'equipment_name': equipment.name
+            }, status=status.HTTP_201_CREATED)
+
         return Response({
-            'message': 'Equipment created successfully',
-            'equipment_id': equipment.id,
-            'equipment_name': equipment.name
-        }, status=status.HTTP_201_CREATED)
-    
-    return Response({
-        'error': 'Invalid data',
-        'details': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def list_equipment(request):
-    equipment = Equipment.objects.filter(created_by=request.user)
-    serializer = EquipmentSerializer(equipment, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+            'error': 'Invalid data',
+            'details': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
