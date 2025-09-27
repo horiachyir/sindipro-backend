@@ -326,6 +326,16 @@ def export_units_excel(request, id):
         # Map identification values to readable text
         identification_display = dict(Unit.IDENTIFICATION_CHOICES).get(unit.identification, unit.identification)
 
+        # Map key_delivery to more readable text for export
+        key_delivery_display_map = {
+            'Yes': 'Yes',
+            'No': 'No',
+            'Pnd': 'Pending',
+            'Y': 'Yes',
+            'N': 'No'
+        }
+        key_delivery_display = key_delivery_display_map.get(unit.key_delivery, unit.key_delivery)
+
         data = [
             unit.number,
             tower_name,
@@ -337,7 +347,7 @@ def export_units_excel(request, id):
             unit.owner,
             unit.owner_phone,
             unit.parking_spaces,
-            unit.key_delivery,
+            key_delivery_display,
             unit.deposit_location or "N/A"
         ]
 
@@ -559,12 +569,41 @@ def import_units_excel(request, id):
                     except (ValueError, TypeError):
                         parking_spaces = 0
 
-                    key_delivery = str(row_data[10]).strip() if row_data[10] is not None else 'No'
+                    key_delivery_input = str(row_data[10]).strip() if row_data[10] is not None else 'No'
                     deposit_location = str(row_data[11]).strip() if row_data[11] is not None else ''
 
                     # Map display values back to database values
                     unit_status = status_map.get(status_display, 'vacant')
                     identification = identification_map.get(identification_display, 'residential')
+
+                    # Map key_delivery values to database-compatible short codes
+                    key_delivery_map = {
+                        'yes': 'Yes',
+                        'no': 'No',
+                        'delivered': 'Yes',
+                        'not delivered': 'No',
+                        'pending': 'Pnd',
+                        'received': 'Yes',
+                        'given': 'Yes',
+                        'done': 'Yes',
+                        'not done': 'No',
+                        'completed': 'Yes',
+                        'incomplete': 'No',
+                        'sim': 'Yes',  # Portuguese for yes
+                        'não': 'No',   # Portuguese for no
+                        'nao': 'No',   # Portuguese for no (without accent)
+                        'entregue': 'Yes',  # Portuguese for delivered
+                    }
+
+                    # Normalize and map key_delivery value
+                    key_delivery_normalized = key_delivery_input.lower().strip()
+                    key_delivery = key_delivery_map.get(key_delivery_normalized, key_delivery_input[:3])
+
+                    # Validate and truncate fields to prevent database errors
+                    unit_number = unit_number[:20] if len(unit_number) > 20 else unit_number
+                    owner = owner[:200] if len(owner) > 200 else owner
+                    owner_phone = owner_phone[:20] if len(owner_phone) > 20 else owner_phone
+                    deposit_location = deposit_location[:200] if len(deposit_location) > 200 else deposit_location
 
                     # Find tower by name
                     tower = None
@@ -658,7 +697,11 @@ def import_units_excel(request, id):
                     create_count += 1
 
             except Exception as e:
-                save_errors.append(f"Error saving unit {unit_data['number']}: {str(e)}")
+                error_msg = str(e)
+                if "value too long for type character varying" in error_msg:
+                    save_errors.append(f"Error saving unit {unit_data['number']}: One or more fields exceed maximum length limits. Please check field lengths.")
+                else:
+                    save_errors.append(f"Error saving unit {unit_data['number']}: {error_msg}")
 
         # Return response
         response_data = {
