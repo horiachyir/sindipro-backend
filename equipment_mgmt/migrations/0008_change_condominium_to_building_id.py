@@ -21,7 +21,8 @@ class Migration(migrations.Migration):
                 blank=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='equipment',
-                to='building_mgmt.building'
+                to='building_mgmt.building',
+                db_column='building_id'
             ),
         ),
         # Step 2: Remove the old condominium field
@@ -36,7 +37,8 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='equipment',
-                to='building_mgmt.building'
+                to='building_mgmt.building',
+                db_column='building_id'
             ),
         ),
     ]
