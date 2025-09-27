@@ -21,7 +21,7 @@ class TowerSerializer(serializers.ModelSerializer):
 class UnitSerializer(serializers.ModelSerializer):
     building_name = serializers.CharField(source='building.building_name', read_only=True)
     building_id = serializers.IntegerField(read_only=True, source='building.id')
-    tower_id = serializers.SerializerMethodField()
+    tower_id = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = Unit
@@ -34,38 +34,42 @@ class UnitSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Handle tower_id from the data
-        tower_data = validated_data.pop('tower', None)
+        tower_id = validated_data.pop('tower_id', None)
         tower = None
 
-        if tower_data and 'id' in tower_data:
+        if tower_id:
             try:
-                tower = Tower.objects.get(id=tower_data['id'])
-                # Ensure the building matches the tower's building
-                validated_data['building'] = tower.building
+                tower = Tower.objects.get(id=tower_id)
+                # Ensure the tower belongs to the same building
+                if 'building' in validated_data and validated_data['building'] != tower.building:
+                    raise serializers.ValidationError("Tower does not belong to the specified building")
             except Tower.DoesNotExist:
                 raise serializers.ValidationError("Invalid tower_id provided")
 
-        # Create the unit
-        unit = Unit.objects.create(**validated_data)
-
-        # Set the tower if provided
+        # Create the unit with the tower
         if tower:
-            unit.tower = tower
-            unit.save()
+            validated_data['tower'] = tower
 
+        unit = Unit.objects.create(**validated_data)
         return unit
 
     def update(self, instance, validated_data):
         # Handle tower_id from the data
-        tower_data = validated_data.pop('tower', None)
-        if tower_data and 'id' in tower_data:
-            try:
-                tower = Tower.objects.get(id=tower_data['id'])
-                instance.tower = tower
-                # Ensure the building matches the tower's building
-                instance.building = tower.building
-            except Tower.DoesNotExist:
-                raise serializers.ValidationError("Invalid tower_id provided")
+        tower_id = validated_data.pop('tower_id', None)
+
+        if tower_id is not None:
+            if tower_id:
+                try:
+                    tower = Tower.objects.get(id=tower_id)
+                    # Ensure the tower belongs to the same building
+                    if instance.building != tower.building:
+                        raise serializers.ValidationError("Tower does not belong to the same building as the unit")
+                    instance.tower = tower
+                except Tower.DoesNotExist:
+                    raise serializers.ValidationError("Invalid tower_id provided")
+            else:
+                # tower_id is None or 0, clear the tower
+                instance.tower = None
 
         # Update other fields
         for attr, value in validated_data.items():
@@ -74,13 +78,11 @@ class UnitSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def get_tower_id(self, obj):
-        return obj.tower.id if obj.tower else None
-
 class UnitDetailSerializer(serializers.ModelSerializer):
     building_name = serializers.CharField(source='building.building_name', read_only=True)
     building_id = serializers.IntegerField(source='building.id', read_only=True)
     tower_id = serializers.SerializerMethodField()
+    tower_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Unit
@@ -88,11 +90,14 @@ class UnitDetailSerializer(serializers.ModelSerializer):
             'id', 'area', 'building_id', 'building_name',
             'deposit_location', 'floor', 'ideal_fraction',
             'identification', 'key_delivery', 'number', 'owner', 'owner_phone',
-            'parking_spaces', 'status', 'tower_id', 'created_at', 'updated_at'
+            'parking_spaces', 'status', 'tower_id', 'tower_name', 'created_at', 'updated_at'
         ]
 
     def get_tower_id(self, obj):
         return obj.tower.id if obj.tower else None
+
+    def get_tower_name(self, obj):
+        return obj.tower.name if obj.tower else None
 
 class BuildingSerializer(serializers.ModelSerializer):
     address = AddressSerializer()
