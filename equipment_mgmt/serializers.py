@@ -7,7 +7,7 @@ class EquipmentSerializer(serializers.ModelSerializer):
     contractorPhone = serializers.CharField(source='contractor_phone')
     maintenanceFrequency = serializers.CharField(source='maintenance_frequency')
     purchaseDate = serializers.DateField(source='purchase_date')
-    building_id = serializers.IntegerField()
+    building_id = serializers.CharField()
 
     class Meta:
         model = Equipment

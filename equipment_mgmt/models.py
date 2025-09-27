@@ -36,7 +36,8 @@ class Equipment(models.Model):
     ]
     
     # Required fields based on new structure
-    building_id = models.ForeignKey(Building, on_delete=models.CASCADE, related_name='equipment', db_column='building_id')
+    # Temporarily using CharField until migrations are applied
+    building_id = models.CharField(max_length=200, db_column='building_id')
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=100)  # Equipment type (e.g., "Social")
     location = models.CharField(max_length=200)
@@ -53,7 +54,7 @@ class Equipment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.name} - {self.building_id.name}"
+        return f"{self.name} - Building {self.building_id}"
     
     @property
     def maintenance_overdue(self):
