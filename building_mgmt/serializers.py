@@ -94,10 +94,18 @@ class UnitDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_tower_id(self, obj):
-        return obj.tower.id if obj.tower else None
+        try:
+            return obj.tower.id if obj.tower else None
+        except Exception:
+            # Handle cases where tower relationship is not loaded or has encoding issues
+            return obj.tower_id if hasattr(obj, 'tower_id') else None
 
     def get_tower_name(self, obj):
-        return obj.tower.name if obj.tower else None
+        try:
+            return obj.tower.name if obj.tower else None
+        except Exception:
+            # Handle cases where tower relationship is not loaded or has encoding issues
+            return None
 
 class BuildingSerializer(serializers.ModelSerializer):
     address = AddressSerializer()

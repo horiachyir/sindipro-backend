@@ -80,6 +80,12 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default=''),
         'HOST': config('DB_HOST', default='pg-388d85e4-horiachyir-880f.d.aivencloud.com'),
         'PORT': config('DB_PORT', default='19239'),
+        'CONN_MAX_AGE': 60,  # Keep connections alive for 60 seconds
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+            'connect_timeout': 10,  # Connection timeout in seconds
+            'options': '-c statement_timeout=20000'  # Statement timeout 20 seconds
+        },
     }
 }
 

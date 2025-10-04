@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
+from django.db import transaction
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -148,11 +149,11 @@ def get_all_buildings(request):
 def get_units(request):
     # Master role users can see all units, others only see units from their buildings
     if request.user.role == 'master':
-        units = Unit.objects.all().select_related('building').order_by('building__building_name', 'number')
+        units = Unit.objects.all().select_related('building', 'tower').order_by('building__building_name', 'number')
     else:
         units = Unit.objects.filter(
             building__created_by=request.user
-        ).select_related('building').order_by('building__building_name', 'number')
+        ).select_related('building', 'tower').order_by('building__building_name', 'number')
 
     serializer = UnitDetailSerializer(units, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -536,8 +537,21 @@ def import_units_excel(request, id):
 
                 # Parse and validate each field with safe conversion
                 try:
-                    unit_number = str(row_data[0]).strip() if row_data[0] is not None else ''
-                    tower_name = str(row_data[1]).strip() if row_data[1] is not None and str(row_data[1]).strip() != 'N/A' else None
+                    # Safe string conversion with encoding handling
+                    def safe_str(value, default=''):
+                        if value is None:
+                            return default
+                        try:
+                            # Convert to string and ensure it's properly encoded
+                            s = str(value).strip()
+                            # Encode and decode to ensure valid UTF-8
+                            return s.encode('utf-8', errors='ignore').decode('utf-8', errors='ignore')
+                        except Exception:
+                            return default
+
+                    unit_number = safe_str(row_data[0], '')
+                    tower_name_raw = safe_str(row_data[1], '')
+                    tower_name = tower_name_raw if tower_name_raw and tower_name_raw != 'N/A' else None
 
                     # Handle floor conversion
                     try:
@@ -545,7 +559,7 @@ def import_units_excel(request, id):
                     except (ValueError, TypeError):
                         floor = 1
 
-                    identification_display = str(row_data[3]).strip() if row_data[3] is not None else 'Residential'
+                    identification_display = safe_str(row_data[3], 'Residential')
 
                     # Handle area conversion
                     try:
@@ -559,9 +573,9 @@ def import_units_excel(request, id):
                     except (ValueError, TypeError):
                         ideal_fraction = 0.0
 
-                    status_display = str(row_data[6]).strip() if row_data[6] is not None else 'Vacant'
-                    owner = str(row_data[7]).strip() if row_data[7] is not None else ''
-                    owner_phone = str(row_data[8]).strip() if row_data[8] is not None else ''
+                    status_display = safe_str(row_data[6], 'Vacant')
+                    owner = safe_str(row_data[7], '')
+                    owner_phone = safe_str(row_data[8], '')
 
                     # Handle parking_spaces conversion
                     try:
@@ -569,8 +583,8 @@ def import_units_excel(request, id):
                     except (ValueError, TypeError):
                         parking_spaces = 0
 
-                    key_delivery_input = str(row_data[10]).strip() if row_data[10] is not None else 'No'
-                    deposit_location = str(row_data[11]).strip() if row_data[11] is not None else ''
+                    key_delivery_input = safe_str(row_data[10], 'No')
+                    deposit_location = safe_str(row_data[11], '')
 
                     # Map display values back to database values
                     unit_status = status_map.get(status_display, 'vacant')
@@ -597,13 +611,30 @@ def import_units_excel(request, id):
 
                     # Normalize and map key_delivery value
                     key_delivery_normalized = key_delivery_input.lower().strip()
-                    key_delivery = key_delivery_map.get(key_delivery_normalized, key_delivery_input[:3])
+                    key_delivery = key_delivery_map.get(key_delivery_normalized, 'No')
+
+                    # If not found in map and has a value, try to truncate safely
+                    if key_delivery == 'No' and key_delivery_input:
+                        # Ensure the truncation doesn't break UTF-8 encoding
+                        truncated = key_delivery_input[:3]
+                        # Verify it's valid UTF-8 after truncation
+                        try:
+                            truncated.encode('utf-8')
+                            key_delivery = truncated
+                        except UnicodeEncodeError:
+                            key_delivery = 'No'
 
                     # Validate and truncate fields to prevent database errors
+                    # Ensure truncation doesn't break UTF-8 encoding
                     unit_number = unit_number[:20] if len(unit_number) > 20 else unit_number
                     owner = owner[:200] if len(owner) > 200 else owner
                     owner_phone = owner_phone[:20] if len(owner_phone) > 20 else owner_phone
                     deposit_location = deposit_location[:200] if len(deposit_location) > 200 else deposit_location
+
+                    # Ensure identification and status are within limits
+                    identification = identification[:20] if len(identification) > 20 else identification
+                    unit_status = unit_status[:20] if len(unit_status) > 20 else unit_status
+                    key_delivery = key_delivery[:3] if len(key_delivery) > 3 else key_delivery
 
                     # Find tower by name
                     tower = None
@@ -668,40 +699,150 @@ def import_units_excel(request, id):
                 'error': 'No valid unit data found in the Excel file'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Save units to database
+        # Save units to database with transaction and batch processing
         created_units = []
         update_count = 0
         create_count = 0
         save_errors = []
 
-        for unit_data in units_data:
-            try:
-                # Check if unit already exists (by building and number)
-                existing_unit = Unit.objects.filter(
-                    building=building,
-                    number=unit_data['number']
-                ).first()
+        print(f"DEBUG: Starting to save {len(units_data)} units to database")
 
-                if existing_unit:
-                    # Update existing unit
+        # Pre-fetch all existing units for this building to avoid repeated queries
+        # This prevents timeout issues from querying potentially corrupted data
+        try:
+            existing_units_dict = {}
+            # Get all units for this building at once
+            existing_units = Unit.objects.filter(building_id=building.id).values('id', 'number')
+            for unit in existing_units:
+                try:
+                    # Safely decode the number field
+                    number = unit['number']
+                    if isinstance(number, bytes):
+                        number = number.decode('utf-8', errors='ignore')
+                    existing_units_dict[number] = unit['id']
+                except Exception as decode_error:
+                    print(f"DEBUG: Error decoding existing unit: {decode_error}")
+                    continue
+            print(f"DEBUG: Found {len(existing_units_dict)} existing units in database")
+        except Exception as fetch_error:
+            print(f"DEBUG: Error fetching existing units: {fetch_error}")
+            existing_units_dict = {}
+
+        # Process units in smaller batches to avoid timeout
+        # Smaller batch size and use bulk_create for better performance
+        batch_size = 10  # Reduced from 50 to 10
+
+        for batch_start in range(0, len(units_data), batch_size):
+            batch_end = min(batch_start + batch_size, len(units_data))
+            batch = units_data[batch_start:batch_end]
+
+            print(f"DEBUG: Processing batch {batch_start//batch_size + 1} ({batch_start+1}-{batch_end} of {len(units_data)})")
+
+            # Separate units to create vs update
+            units_to_create = []
+            units_to_update = []
+
+            for unit_data in batch:
+                try:
+                    # Validate all string fields are properly encoded before saving
+                    for field_name, field_value in unit_data.items():
+                        if isinstance(field_value, str):
+                            try:
+                                # Ensure the string is valid UTF-8
+                                field_value.encode('utf-8')
+                            except UnicodeEncodeError:
+                                # Clean the string by removing problematic characters
+                                unit_data[field_name] = field_value.encode('utf-8', errors='ignore').decode('utf-8', errors='ignore')
+
+                    # Check if unit already exists using pre-fetched dictionary
+                    unit_number = unit_data['number']
+                    existing_unit_id = existing_units_dict.get(unit_number)
+
+                    if existing_unit_id:
+                        units_to_update.append((existing_unit_id, unit_data))
+                    else:
+                        units_to_create.append(unit_data)
+
+                except Exception as e:
+                    error_msg = str(e)
+                    unit_number = unit_data.get('number', 'unknown')
+                    print(f"DEBUG: Error preparing unit {unit_number}: {error_msg}")
+                    save_errors.append(f"Error preparing unit {unit_number}: {error_msg}")
+
+            # Process updates without transaction to avoid commit timeout
+            for existing_unit_id, unit_data in units_to_update:
+                try:
+                    existing_unit = Unit.objects.get(id=existing_unit_id)
                     for field, value in unit_data.items():
                         if field != 'building':  # Don't update building
                             setattr(existing_unit, field, value)
                     existing_unit.save()
                     created_units.append(existing_unit)
                     update_count += 1
-                else:
-                    # Create new unit
-                    unit = Unit.objects.create(**unit_data)
-                    created_units.append(unit)
-                    create_count += 1
+                    print(f"DEBUG: Updated unit {unit_data['number']}")
+                except Exception as e:
+                    error_msg = str(e)
+                    unit_number = unit_data.get('number', 'unknown')
+                    print(f"DEBUG: Error updating unit {unit_number}: {error_msg}")
+                    save_errors.append(f"Error updating unit {unit_number}: {error_msg}")
 
-            except Exception as e:
-                error_msg = str(e)
-                if "value too long for type character varying" in error_msg:
-                    save_errors.append(f"Error saving unit {unit_data['number']}: One or more fields exceed maximum length limits. Please check field lengths.")
-                else:
-                    save_errors.append(f"Error saving unit {unit_data['number']}: {error_msg}")
+            # Process creates using bulk_create for maximum speed
+            # Prepare all units first
+            units_to_bulk_create = []
+            for unit_data in units_to_create:
+                try:
+                    # Round decimal fields to proper precision to avoid validation errors
+                    if 'area' in unit_data and unit_data['area'] is not None:
+                        unit_data['area'] = round(float(unit_data['area']), 2)
+                    if 'ideal_fraction' in unit_data and unit_data['ideal_fraction'] is not None:
+                        unit_data['ideal_fraction'] = round(float(unit_data['ideal_fraction']), 6)
+
+                    # Create unit object (not saved yet)
+                    unit = Unit(**unit_data)
+                    units_to_bulk_create.append(unit)
+                except Exception as e:
+                    error_msg = str(e)
+                    unit_number = unit_data.get('number', 'unknown')
+                    print(f"DEBUG: Error preparing unit {unit_number}: {error_msg}")
+                    save_errors.append(f"Error preparing unit {unit_number}: {error_msg}")
+
+            # Bulk create all units in one database operation
+            if units_to_bulk_create:
+                try:
+                    print(f"DEBUG: Bulk creating {len(units_to_bulk_create)} units")
+                    # Use bulk_create with batch_size to avoid memory issues
+                    created_batch = Unit.objects.bulk_create(units_to_bulk_create, batch_size=10)
+                    created_units.extend(created_batch)
+                    create_count += len(created_batch)
+                    print(f"DEBUG: Successfully bulk created {len(created_batch)} units")
+
+                    # Update dictionary with new IDs
+                    for unit in created_batch:
+                        existing_units_dict[unit.number] = unit.id
+                except Exception as e:
+                    error_msg = str(e)
+                    print(f"DEBUG: Error in bulk_create: {error_msg}")
+
+                    # Fallback to individual saves if bulk_create fails
+                    print(f"DEBUG: Falling back to individual saves")
+                    for unit in units_to_bulk_create:
+                        try:
+                            unit.save()
+                            created_units.append(unit)
+                            create_count += 1
+                            existing_units_dict[unit.number] = unit.id
+                            print(f"DEBUG: Created unit {unit.number}")
+                        except Exception as save_error:
+                            error_msg = str(save_error)
+                            print(f"DEBUG: Error creating unit {unit.number}: {error_msg}")
+                            if "value too long for type character varying" in error_msg:
+                                save_errors.append(f"Error saving unit {unit.number}: One or more fields exceed maximum length limits.")
+                            elif "UnicodeDecodeError" in error_msg or "UnicodeEncodeError" in error_msg or "codec" in error_msg:
+                                save_errors.append(f"Error saving unit {unit.number}: Invalid character encoding in data.")
+                            elif "unique constraint" in error_msg.lower() or "duplicate key" in error_msg.lower():
+                                save_errors.append(f"Error saving unit {unit.number}: Unit already exists.")
+                            else:
+                                save_errors.append(f"Error saving unit {unit.number}: {error_msg}")
 
         # Return response
         response_data = {
